@@ -50,3 +50,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Eclipse files
+.metadata/
+RemoteSystemsTempFiles/
+Debug/
+Release/
