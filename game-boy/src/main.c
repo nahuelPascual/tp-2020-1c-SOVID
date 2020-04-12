@@ -6,17 +6,22 @@
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <commons/string.h>
-#include <delibird-commons/utils/print.h>
 
 int main(int argc, char **argv) {
-	
-	char * proceso = string_new();
-	
-	string_append(&proceso, "GameBoy");
-	
-	print_process(proceso);
+
+//	t_string *str = newString("Hola capo, vengo del futuro y queria contarte que aprobaste Operativos en el 1C2020");
+//
+//	t_new_pokemon newPok;
+//	newPok.name = newString("Pikachu");
+//	newPok.quantity = 1;
+//	newPok.pos = malloc(sizeof(t_coord));
+//	newPok.pos->x = 1;
+//	newPok.pos->y = 6;
+//
+//	int conn = crear_conexion("127.0.0.1", "4444"); // TODO sacar a un config
+////	enviar(conn, str, STRING);
+//	enviar(conn, &newPok, NEW_POKEMON);
+//    destruir_conexion(conn);
 
 	return 0;
 }
