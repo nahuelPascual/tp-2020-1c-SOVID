@@ -8,8 +8,8 @@
 #include <stdint.h>
 
 typedef struct {
-    uint32_t cod_op;
-    uint32_t size;
+    uint32_t cod_operacion;
+    uint32_t payload_size;
 } t_header;
 
 typedef struct {
