@@ -8,13 +8,13 @@
 #include <stdint.h>
 
 typedef struct {
+    uint32_t cod_op;
     uint32_t size;
-    void* stream;
-} t_buffer;
+} t_header;
 
 typedef struct {
-    uint32_t operacion;
-    t_buffer* buffer;
+    t_header* header;
+    void* payload;
 } t_paquete;
 
 #endif //COMUNICATION_H_
