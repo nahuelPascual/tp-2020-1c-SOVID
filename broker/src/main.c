@@ -7,17 +7,24 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <commons/string.h>
-#include <delibird-commons/utils/print.h>
+#include <delibird-commons/utils/ipc.h>
 
 int main(int argc, char **argv) {
 
-	char * proceso = string_new();
-	
-	string_append(&proceso, "Broker");
-	
-	print_process(proceso);
+	int broker = ipc_escuchar_en("127.0.0.1", "8081");
 
-	return 0;
+	int gameBoy = ipc_esperar_cliente(broker);
+
+	while(ipc_hay_datos_para_recibir_de(gameBoy)) {
+
+		t_paquete* paquete = ipc_recibir_de(gameBoy);
+
+		//Hacer algo con el paquete
+
+	}
+	
+	ipc_cerrar(gameBoy);
+
+	return EXIT_SUCCESS;
 }
 
