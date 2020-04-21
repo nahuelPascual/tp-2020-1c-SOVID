@@ -5,7 +5,6 @@
 #include "ipc.h"
 
 int ipc_escuchar_en(char* ip, char* puerto) {
-
 	int socket_servidor;
 
 	struct addrinfo hints, *servinfo, *p;
@@ -64,7 +63,7 @@ t_paquete* ipc_recibir_de(int socket) {
 	return paquete;
 }
 
-void ipc_enviar(int socket, t_paquete* paquete) {
+void ipc_enviar_a(int socket, t_paquete* paquete) {
 	int size = paquete->header->payload_size + sizeof(t_header);
 	void* stream = malloc(size);
 	int offset = 0;
@@ -78,13 +77,7 @@ void ipc_enviar(int socket, t_paquete* paquete) {
 	free(stream);
 }
 
-void ipc_liberar(t_paquete* paquete) {
-	free(paquete->header);
-	free(paquete->payload);
-	free(paquete);
-}
-
-int ipc_conectarse_a(char *ip, char* puerto){
+int ipc_conectarse_a(char *ip, char* puerto) {
 	struct addrinfo hints;
 	struct addrinfo *server_info;
 

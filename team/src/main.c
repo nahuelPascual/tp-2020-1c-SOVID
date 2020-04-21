@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <commons/string.h>
-#include <delibird-commons/utils/print.h>
 
 int main(int argc, char **argv) {
 
@@ -16,7 +15,7 @@ int main(int argc, char **argv) {
 	
 	string_append(&proceso, "Team");
 	
-	print_process(proceso);
+	puts(proceso);
 
 	return 0;
 }

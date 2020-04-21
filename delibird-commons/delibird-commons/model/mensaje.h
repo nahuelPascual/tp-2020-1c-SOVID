@@ -2,8 +2,8 @@
 // Created by utnso on 9/04/20.
 //
 
-#ifndef MODEL_H_
-#define MODEL_H_
+#ifndef MENSAJE_H_
+#define MENSAJE_H_
 
 #include <commons/collections/list.h>
 #include <stdint.h>
@@ -53,4 +53,4 @@ typedef struct {
 
 typedef uint32_t t_caught_pokemon;
 
-#endif //MODEL_H_
+#endif //MENSAJE_H_
