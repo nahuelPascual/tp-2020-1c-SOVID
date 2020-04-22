@@ -6,7 +6,7 @@
 #define PAQUETE_H
 
 typedef struct {
-    uint32_t cod_operacion;
+    uint32_t tipo_mensaje;
     uint32_t payload_size;
 } t_header;
 
