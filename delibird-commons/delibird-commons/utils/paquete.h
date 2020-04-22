@@ -5,6 +5,8 @@
 #ifndef PAQUETE_H
 #define PAQUETE_H
 
+#include <stdint.h>
+
 typedef struct {
     uint32_t tipo_mensaje;
     uint32_t payload_size;

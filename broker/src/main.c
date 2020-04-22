@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <delibird-commons/utils/paquete.h>
 #include <delibird-commons/utils/ipc.h>
 
 int main(int argc, char **argv) {
@@ -20,7 +21,6 @@ int main(int argc, char **argv) {
 		t_paquete* paquete = ipc_recibir_de(gameBoy);
 
 		//Hacer algo con el paquete
-
 	}
 	
 	ipc_cerrar(gameBoy);
