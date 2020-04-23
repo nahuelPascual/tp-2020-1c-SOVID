@@ -9,16 +9,11 @@
 #include <stdlib.h>
 #include <delibird-commons/utils/paquete.h>
 #include <delibird-commons/utils/ipc.h>
+#include "test/serialization.h"
 
 int main(int argc, char **argv) {
 
-	t_paquete* paquete; //Crear el paquete
-
-	int broker = ipc_conectarse_a("127.0.0.1", "8081");
-
-	ipc_enviar_a(broker, paquete);
-
-	ipc_cerrar(broker);
+	test_serializarEnviarTodos("127.0.0.1", "8081");
 
 	return EXIT_SUCCESS;
 }

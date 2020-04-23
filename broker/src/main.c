@@ -20,7 +20,10 @@ int main(int argc, char **argv) {
 
 		t_paquete* paquete = ipc_recibir_de(gameBoy);
 
-		//Hacer algo con el paquete
+		printf("tipo_mensaje: %d\n", paquete->header->tipo_mensaje);
+		printf("payload_size: %d\n\n", paquete->header->payload_size);
+
+		paquete_liberar(paquete);
 	}
 	
 	ipc_cerrar(gameBoy);

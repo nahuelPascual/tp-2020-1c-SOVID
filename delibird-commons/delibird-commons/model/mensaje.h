@@ -7,12 +7,19 @@
 
 #include <commons/collections/list.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
 
 enum {
     STRING,
-    NEW_POKEMON, APPEARED_POKEMON,
-    GET_POKEMON, LOCALIZED_POKEMON,
-    CATCH_POKEMON, CAUGHT_POKEMON
+    NEW_POKEMON,
+    LOCALIZED_POKEMON,
+    GET_POKEMON,
+    APPEARED_POKEMON,
+    CATCH_POKEMON,
+    CAUGHT_POKEMON
 };
 
 typedef struct {
@@ -51,6 +58,15 @@ typedef struct {
     t_coord* posicion;
 } t_catch_pokemon;
 
-typedef uint32_t t_caught_pokemon;
+typedef struct{
+    uint32_t is_caught;
+} t_caught_pokemon;
+
+t_new_pokemon* crear_new_pokemon(char* name, uint32_t x, uint32_t y, uint32_t cantidad);
+t_localized_pokemon* crear_localized_pokemon(char* name, uint32_t cantidadPosiciones,...);
+t_get_pokemon* crear_get_pokemon(char* name);
+t_appeared_pokemon* crear_appeared_pokemon(char* name, uint32_t x, uint32_t y);
+t_catch_pokemon* crear_catch_pokemon(char* name, uint32_t x, uint32_t y);
+t_caught_pokemon* crear_caught_pokemon(uint32_t booleano);
 
 #endif //MENSAJE_H_
