@@ -62,11 +62,11 @@ typedef struct{
     uint32_t is_caught;
 } t_caught_pokemon;
 
-t_new_pokemon* crear_new_pokemon(char* name, uint32_t x, uint32_t y, uint32_t cantidad);
-t_localized_pokemon* crear_localized_pokemon(char* name, uint32_t cantidadPosiciones,...);
-t_get_pokemon* crear_get_pokemon(char* name);
-t_appeared_pokemon* crear_appeared_pokemon(char* name, uint32_t x, uint32_t y);
-t_catch_pokemon* crear_catch_pokemon(char* name, uint32_t x, uint32_t y);
-t_caught_pokemon* crear_caught_pokemon(uint32_t booleano);
+t_new_pokemon* mensaje_crear_new_pokemon(char* name, uint32_t x, uint32_t y, uint32_t cantidad);
+t_localized_pokemon* mensaje_crear_localized_pokemon(char* name, uint32_t cantidadPosiciones, ...);
+t_get_pokemon* mensaje_crear_get_pokemon(char* name);
+t_appeared_pokemon* mensaje_crear_appeared_pokemon(char* name, uint32_t x, uint32_t y);
+t_catch_pokemon* mensaje_crear_catch_pokemon(char* name, uint32_t x, uint32_t y);
+t_caught_pokemon* mensaje_crear_caught_pokemon(uint32_t booleano);
 
 #endif //MENSAJE_H_

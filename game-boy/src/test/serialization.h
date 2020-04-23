@@ -5,6 +5,7 @@
 #ifndef SERIALIZATION_H
 #define SERIALIZATION_H
 
+#include <commons/collections/list.h>
 #include <delibird-commons/model/mensaje.h>
 #include <delibird-commons/utils/ipc.h>
 

@@ -24,11 +24,11 @@ typedef struct {
 
 void paquete_liberar(t_paquete* paquete);
 
-t_paquete* mensaje_paquete_from_new_pokemon(t_new_pokemon* pokemon);
-t_paquete* mensaje_paquete_from_localized_pokemon(t_localized_pokemon* pokemon);
-t_paquete* mensaje_paquete_from_get_pokemon(t_get_pokemon* pokemon);
-t_paquete* mensaje_paquete_from_appeared_pokemon(t_appeared_pokemon* pokemon);
-t_paquete* mensaje_paquete_from_catch_pokemon(t_catch_pokemon* pokemon);
-t_paquete* mensaje_paquete_from_caught_pokemon(t_caught_pokemon* pokemon);
+t_paquete* paquete_from_new_pokemon(t_new_pokemon* pokemon);
+t_paquete* paquete_from_localized_pokemon(t_localized_pokemon* pokemon);
+t_paquete* paquete_from_get_pokemon(t_get_pokemon* pokemon);
+t_paquete* paquete_from_appeared_pokemon(t_appeared_pokemon* pokemon);
+t_paquete* paquete_from_catch_pokemon(t_catch_pokemon* pokemon);
+t_paquete* paquete_from_caught_pokemon(t_caught_pokemon* pokemon);
 
 #endif //PAQUETE_H

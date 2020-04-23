@@ -12,7 +12,7 @@ void paquete_liberar(t_paquete* paquete) {
     free(paquete);
 }
 
-t_paquete* mensaje_paquete_from_new_pokemon(t_new_pokemon* pokemon){
+t_paquete* paquete_from_new_pokemon(t_new_pokemon* pokemon){
     t_paquete* paquete = malloc(sizeof(t_paquete));
 
     int size = pokemon->nombre_len + sizeof(t_coord) + sizeof(uint32_t)*2;
@@ -34,7 +34,7 @@ t_paquete* mensaje_paquete_from_new_pokemon(t_new_pokemon* pokemon){
     return paquete;
 }
 
-t_paquete* mensaje_paquete_from_localized_pokemon(t_localized_pokemon* pokemon){
+t_paquete* paquete_from_localized_pokemon(t_localized_pokemon* pokemon){
     t_paquete* paquete = malloc(sizeof(t_paquete));
 
     int size = pokemon->nombre_len + pokemon->posiciones_len * sizeof(t_coord) + sizeof(uint32_t) * 2;
@@ -61,7 +61,7 @@ t_paquete* mensaje_paquete_from_localized_pokemon(t_localized_pokemon* pokemon){
     return paquete;
 }
 
-t_paquete* mensaje_paquete_from_get_pokemon(t_get_pokemon* pokemon){
+t_paquete* paquete_from_get_pokemon(t_get_pokemon* pokemon){
     t_paquete* paquete = malloc(sizeof(t_paquete));
 
     int size = pokemon->nombre_len + sizeof(uint32_t);
@@ -79,7 +79,7 @@ t_paquete* mensaje_paquete_from_get_pokemon(t_get_pokemon* pokemon){
     return paquete;
 }
 
-t_paquete* mensaje_paquete_from_appeared_pokemon(t_appeared_pokemon* pokemon){
+t_paquete* paquete_from_appeared_pokemon(t_appeared_pokemon* pokemon){
     t_paquete* paquete = malloc(sizeof(t_paquete));
 
     int size = pokemon->nombre_len + sizeof(t_coord) + sizeof(uint32_t);
@@ -101,7 +101,7 @@ t_paquete* mensaje_paquete_from_appeared_pokemon(t_appeared_pokemon* pokemon){
     return paquete;
 }
 
-t_paquete* mensaje_paquete_from_catch_pokemon(t_catch_pokemon* pokemon){
+t_paquete* paquete_from_catch_pokemon(t_catch_pokemon* pokemon){
     t_paquete* paquete = malloc(sizeof(t_paquete));
 
     int size = pokemon->nombre_len + sizeof(t_coord) + sizeof(uint32_t);
@@ -123,7 +123,7 @@ t_paquete* mensaje_paquete_from_catch_pokemon(t_catch_pokemon* pokemon){
     return paquete;
 }
 
-t_paquete* mensaje_paquete_from_caught_pokemon(t_caught_pokemon* pokemon){
+t_paquete* paquete_from_caught_pokemon(t_caught_pokemon* pokemon){
     t_paquete* paquete = malloc(sizeof(t_paquete));
 
     int size = sizeof(uint32_t);
