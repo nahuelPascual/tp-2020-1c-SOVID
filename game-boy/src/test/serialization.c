@@ -39,10 +39,9 @@ void test_new_pokemon(int conn){
     printf("posicion: (%d,%d)\n", pokemon->posicion->x, pokemon->posicion->y);
     printf("cantidad:%d\n\n", pokemon->cantidad);
 
-    free(pokemon->posicion);
-    free(pokemon);
-
     ipc_enviar_a(conn, paquete);
+
+    mensaje_liberar_new_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
@@ -70,11 +69,9 @@ void test_localized_pokemon(int conn){
     }
     printf("\n\n");
 
-    list_clean_and_destroy_elements(pokemon->posiciones, free);
-    free(pokemon->posiciones);
-    free(pokemon);
-
     ipc_enviar_a(conn, paquete);
+
+    mensaje_liberar_localized_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
@@ -90,9 +87,9 @@ void test_get_pokemon(int conn){
     printf("nombre_len:%d\n", pokemon->nombre_len);
     printf("nombre:%s\n\n", pokemon->nombre);
 
-    free(pokemon);
-
     ipc_enviar_a(conn, paquete);
+
+    mensaje_liberar_get_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
@@ -109,10 +106,9 @@ void test_appeared_pokemon(int conn){
     printf("nombre:%s\n", pokemon->nombre);
     printf("posicion: (%d,%d)\n\n", pokemon->posicion->x, pokemon->posicion->y);
 
-    free(pokemon->posicion);
-    free(pokemon);
-
     ipc_enviar_a(conn, paquete);
+
+    mensaje_liberar_appeared_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
@@ -129,10 +125,9 @@ void test_catch_pokemon(int conn){
     printf("nombre:%s\n", pokemon->nombre);
     printf("posicion: (%d,%d)\n\n", pokemon->posicion->x, pokemon->posicion->y);
 
-    free(pokemon->posicion);
-    free(pokemon);
-
     ipc_enviar_a(conn, paquete);
+
+    mensaje_liberar_catch_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
@@ -145,9 +140,9 @@ void test_caught_pokemon(int conn){
     printf("payload_size:%d\n", paquete->header->payload_size);
     printf("is_caught: %s\n\n", pokemon->is_caught ? "true" : "false");
 
-    free(pokemon);
-
     ipc_enviar_a(conn, paquete);
+
+    mensaje_liberar_caught_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
