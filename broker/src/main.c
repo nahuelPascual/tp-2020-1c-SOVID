@@ -7,27 +7,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <delibird-commons/utils/paquete.h>
-#include <delibird-commons/utils/ipc.h>
+#include "test/deserialization.h"
 
 int main(int argc, char **argv) {
 
-	int broker = ipc_escuchar_en("127.0.0.1", "8081");
+    test_deserializarRecibirTodos("127.0.0.1", "8081");
 
-	int gameBoy = ipc_esperar_cliente(broker);
-
-	while(ipc_hay_datos_para_recibir_de(gameBoy)) {
-
-		t_paquete* paquete = ipc_recibir_de(gameBoy);
-
-		printf("tipo_mensaje: %d\n", paquete->header->tipo_mensaje);
-		printf("payload_size: %d\n\n", paquete->header->payload_size);
-
-		paquete_liberar(paquete);
-	}
-	
-	ipc_cerrar(gameBoy);
-
-	return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
-

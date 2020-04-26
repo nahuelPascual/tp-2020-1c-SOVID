@@ -11,12 +11,11 @@
 
 int main(int argc, char **argv) {
 
-	char * proceso = string_new();
-	
-	string_append(&proceso, "Team");
-	
-	puts(proceso);
+    char * proceso = string_new();
 
-	return 0;
+    string_append(&proceso, "Team");
+
+    puts(proceso);
+
+    return 0;
 }
-

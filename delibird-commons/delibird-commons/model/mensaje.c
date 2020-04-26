@@ -22,8 +22,8 @@ t_localized_pokemon* mensaje_crear_localized_pokemon(char* nombre, uint32_t cant
     va_list coordenadas;
     t_list* posiciones = list_create();
 
-    va_start(coordenadas, cantidadPosiciones*2);
-    for (int i=0; i<cantidadPosiciones; ++i) {
+    va_start(coordenadas, cantidadPosiciones * 2);
+    for(int i = 0; i < cantidadPosiciones; ++i) {
         t_coord* posicion = malloc(sizeof(t_coord));
         posicion->x = va_arg(coordenadas, uint32_t);
         posicion->y = va_arg(coordenadas, uint32_t);
