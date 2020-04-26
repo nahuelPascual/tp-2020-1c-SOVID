@@ -24,7 +24,7 @@ t_paquete* paquete_from_new_pokemon(t_new_pokemon* pokemon){
     offset += sizeof(uint32_t);
     memcpy(stream+offset, pokemon->nombre, pokemon->nombre_len);
     offset += pokemon->nombre_len;
-    memcpy(stream+offset, &(pokemon->posicion), sizeof(t_coord));
+    memcpy(stream+offset, pokemon->posicion, sizeof(t_coord));
     offset += sizeof(t_coord);
     memcpy(stream+offset, &(pokemon->cantidad), sizeof(uint32_t));
 
