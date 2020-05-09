@@ -12,9 +12,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum {
-    STRING, NEW_POKEMON, LOCALIZED_POKEMON, GET_POKEMON, APPEARED_POKEMON, CATCH_POKEMON, CAUGHT_POKEMON
-};
+typedef enum {
+    NEW_POKEMON, LOCALIZED_POKEMON, GET_POKEMON, APPEARED_POKEMON, CATCH_POKEMON, CAUGHT_POKEMON, NO_APLICA = -1
+} t_tipo_mensaje;
 
 typedef struct {
     uint32_t x;

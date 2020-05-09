@@ -11,7 +11,6 @@
 #include <netdb.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include "../model/mensaje.h"
 
 #include "paquete.h"
 
