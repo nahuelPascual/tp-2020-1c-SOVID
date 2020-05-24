@@ -5,7 +5,7 @@
 #include "deserialization.h"
 
 void test_mensaje(t_paquete* paquete) {
-    switch(paquete->header->tipo_mensaje) {
+    switch (paquete->header->tipo_mensaje) {
     case NEW_POKEMON:
         printf("testing new_pokemon\n");
         t_new_pokemon* new_pokemon = paquete_to_new_pokemon(paquete);
@@ -32,9 +32,9 @@ void test_mensaje(t_paquete* paquete) {
         printf("nombre: %s\n", localized_pokemon->nombre);
         printf("cantidad_posiciones: %d\n", localized_pokemon->posiciones_len);
         printf("posiciones: ");
-        for(int i = 0; i < localized_pokemon->posiciones_len; i++) {
+        for (int i = 0; i < localized_pokemon->posiciones_len; i++) {
             t_coord* posicion = (t_coord*) list_get(localized_pokemon->posiciones, i);
-            if(i > 0) {
+            if (i > 0) {
                 printf(", ");
             }
             printf("(%d,%d)", posicion->x, posicion->y);
@@ -137,32 +137,32 @@ void test_informe_id(t_paquete* paquete) {
 void test_deserializarRecibirTodos(char* ip, char* puerto) {
     int broker = ipc_escuchar_en(ip, puerto);
 
-    int gameBoy = ipc_esperar_cliente(broker);
+    while (1) {
+        int cliente = ipc_esperar_cliente(broker);
 
-    while(ipc_hay_datos_para_recibir_de(gameBoy)) {
+        while (ipc_hay_datos_para_recibir_de(cliente)) {
+            t_paquete* paquete = ipc_recibir_de(cliente);
 
-        t_paquete* paquete = ipc_recibir_de(gameBoy);
+            switch (paquete->header->tipo_paquete) {
+            case MENSAJE:
+                test_mensaje(paquete);
+                break;
+            case ACK:
+                test_ack(paquete);
+                break;
+            case SUSCRIPCION:
+                test_suscripcion(paquete);
+                break;
+            case INFORME_ID:
+                test_informe_id(paquete);
+                break;
+            default:
+                printf("Esta llegando mal el paquete\n");
+                break;
+            }
 
-        switch(paquete->header->tipo_paquete) {
-        case MENSAJE:
-            test_mensaje(paquete);
-            break;
-        case ACK:
-            test_ack(paquete);
-            break;
-        case SUSCRIPCION:
-            test_suscripcion(paquete);
-            break;
-        case INFORME_ID:
-            test_informe_id(paquete);
-            break;
-        default:
-            printf("Esta llegando mal el paquete\n");
-            break;
+            paquete_liberar(paquete);
         }
-
-        paquete_liberar(paquete);
+        ipc_cerrar(cliente);
     }
-
-    ipc_cerrar(gameBoy);
 }

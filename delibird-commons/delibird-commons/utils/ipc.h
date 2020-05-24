@@ -11,7 +11,6 @@
 #include <netdb.h>
 #include <stdbool.h>
 #include <unistd.h>
-
 #include "paquete.h"
 
 int ipc_escuchar_en(char* ip, char* puerto);
