@@ -18,7 +18,7 @@
 #include "planificador.h"
 
 int main(int argc, char **argv) {
-    t_config_team* config_team = parser_get_config_team();
+    config_team_init();
     t_dictionary* objetivos_globales = calcular_objetivos_globales(entrenador_all());
 	pthread_t suscriptorThread, gameboyListener, planificador;
 
@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
     pthread_join(gameboyListener, NULL);
     pthread_join(suscriptorThread, NULL);
 
-    liberar_config_team(config_team);
+    liberar_config_team();
     log_destroy(default_logger);
     log_destroy(logger);
 

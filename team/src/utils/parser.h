@@ -11,6 +11,7 @@
 #include <commons/log.h>
 #include <commons/config.h>
 #include <commons/collections/list.h>
+#include <commons/string.h>
 #include "../entrenador.h"
 
 typedef struct {
@@ -22,13 +23,13 @@ typedef struct {
     char* ip_broker;
     char* puerto_broker;
     char* log_file;
-    t_config* config;
 } t_config_team;
 
 t_log* logger;
 t_log* default_logger;
+t_config_team* config_team;
 
-t_config_team* parser_get_config_team();
-void liberar_config_team(t_config_team*);
+void config_team_init();
+void liberar_config_team();
 
 #endif
