@@ -10,6 +10,7 @@ t_new_pokemon* mensaje_crear_new_pokemon(char* nombre, uint32_t x, uint32_t y, u
     pokemon->nombre_len = strlen(nombre) + 1;
     pokemon->nombre = malloc(pokemon->nombre_len);
     strcpy(pokemon->nombre, nombre);
+    string_to_upper(pokemon->nombre);
     pokemon->posicion = malloc(sizeof(t_coord));
     pokemon->posicion->x = x;
     pokemon->posicion->y = y;
@@ -35,6 +36,7 @@ t_localized_pokemon* mensaje_crear_localized_pokemon(char* nombre, uint32_t cant
     pokemon->nombre_len = strlen(nombre) + 1;
     pokemon->nombre = malloc(pokemon->nombre_len);
     strcpy(pokemon->nombre, nombre);
+    string_to_upper(pokemon->nombre);
     pokemon->posiciones_len = cantidadPosiciones;
     pokemon->posiciones = posiciones;
 
@@ -57,6 +59,7 @@ t_appeared_pokemon* mensaje_crear_appeared_pokemon(char* nombre, uint32_t x, uin
     pokemon->nombre_len = strlen(nombre) + 1;
     pokemon->nombre = malloc(pokemon->nombre_len);
     strcpy(pokemon->nombre, nombre);
+    string_to_upper(pokemon->nombre);
     pokemon->posicion = malloc(sizeof(t_coord));
     pokemon->posicion->x = x;
     pokemon->posicion->y = y;
@@ -70,6 +73,7 @@ t_catch_pokemon* mensaje_crear_catch_pokemon(char* nombre, uint32_t x, uint32_t 
     pokemon->nombre_len = strlen(nombre) + 1;
     pokemon->nombre = malloc(pokemon->nombre_len);
     strcpy(pokemon->nombre, nombre);
+    string_to_upper(pokemon->nombre);
     pokemon->posicion = malloc(sizeof(t_coord));
     pokemon->posicion->x = x;
     pokemon->posicion->y = y;

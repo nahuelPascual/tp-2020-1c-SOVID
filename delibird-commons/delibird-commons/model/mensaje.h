@@ -6,6 +6,7 @@
 #define MENSAJE_H_
 
 #include <commons/collections/list.h>
+#include <commons/string.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
