@@ -17,31 +17,50 @@
 #include "entrenador.h"
 #include "planificador.h"
 
+void crear_hilos_entrenador();
+void crear_hilos_suscriptor();
+void crear_gameboy_listener(t_config_team* config_team);
+
 int main(int argc, char **argv) {
     config_team_init();
     t_dictionary* objetivos_globales = calcular_objetivos_globales(entrenador_all());
-	pthread_t suscriptorThread, gameboyListener, planificador;
 
-	// TODO no usar este hilo extra; crear las tres suscripciones en el main
-    pthread_create(&suscriptorThread, NULL, (void*)suscribirseAlBroker, NULL);
-
-    int server = ipc_escuchar_en(config_team->ip_broker, config_team->puerto_broker);
-    int gameboy = ipc_esperar_cliente(server);
-    pthread_create(&gameboyListener, NULL, (void*)escuchar, gameboy);
-
-    // se envia un get_pokemon por cada especie de pokemon
-    dictionary_iterator(objetivos_globales, (void*)enviar_get_pokemon);
+	  crear_hilos_suscriptor();
+	  crear_gameboy_listener(config_team); // TODO con la config global no seria necesario pasarla por parametro
 
     init_pokemon_map();
-    planificador_init();
-    pthread_create(&planificador, NULL, (void*)planificar, NULL);
+    crear_hilos_entrenador();
 
-    pthread_join(gameboyListener, NULL);
-    pthread_join(suscriptorThread, NULL);
+    // se envia un get_pokemon por cada especie de pokemon requerida
+    dictionary_iterator(objetivos_globales, (void*)enviar_get_pokemon);
+
+    planificador_init();
 
     liberar_config_team();
     log_destroy(default_logger);
     log_destroy(logger);
-
+  
     return EXIT_SUCCESS;
+}
+
+void crear_hilos_entrenador() {
+    pthread_t hilos[entrenador_get_count()];
+    void _crear_hilo(void* e) {
+        t_entrenador* entrenador = (t_entrenador*) e;
+        pthread_create(&hilos[entrenador->id], NULL, (void*)entrenador_execute, entrenador);
+        pthread_detach(hilos[entrenador->id]);
+    }
+    list_iterate(entrenador_get_all(), (void*)_crear_hilo);
+}
+
+void crear_hilos_suscriptor() {
+    suscribirse_a(LOCALIZED_POKEMON);
+    suscribirse_a(APPEARED_POKEMON);
+    suscribirse_a(CAUGHT_POKEMON);
+}
+
+void crear_gameboy_listener(t_config_team* config_team) {
+    pthread_t gameboyListener;
+    pthread_create(&gameboyListener, NULL, (void*)escuchar, NULL);
+    pthread_detach(gameboyListener);
 }

@@ -10,8 +10,9 @@
 
 #include <commons/log.h>
 #include <commons/config.h>
-#include <commons/collections/list.h>
 #include <commons/string.h>
+#include <commons/collections/list.h>
+#include <delibird-commons/model/mensaje.h>
 #include "../entrenador.h"
 
 typedef struct {

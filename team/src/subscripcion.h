@@ -17,7 +17,7 @@
 #include "utils/objetivos.h"
 #include "planificador.h"
 
-void suscribirseAlBroker();
-void escuchar(int con);
+void suscribirse_a(t_tipo_mensaje tipo_mensaje);
+void escuchar();
 
 #endif //TEAM_SUBSCRIPCION_H

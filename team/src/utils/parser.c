@@ -66,11 +66,12 @@ static t_list* parse_entrenadores(){
        t_list* pokemones = parse_pokemones(array_pokemones[i]);
 
        // TODO hacer un constructor en entrenador.c/h
-       entrenador->thread_id = i;
+       entrenador->id = i;
        entrenador->posicion = posicion;
        entrenador->objetivos = objetivos;
-       entrenador->pokemon_atrapados = pokemones;
+       entrenador->capturados = pokemones;
        entrenador->estado = NEW;
+       entrenador->objetivo_actual = NULL;
 
        list_add(entrenadores, entrenador);
 
