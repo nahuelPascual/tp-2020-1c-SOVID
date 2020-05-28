@@ -39,17 +39,18 @@ void actualizar_objetivos_globales(void* objetivo){
 
 bool is_pokemon_requerido(char* nombre) {
     if (!dictionary_has_key(mapa_objetivos, nombre)) {
-        puts("no es objetivo");
+        log_debug(default_logger, "%s no es un objetivo del team", nombre);
         return false;
     }
+    int cantidad_objetivo = (int) dictionary_get(mapa_objetivos, nombre);
+
     if (!dictionary_has_key(atrapados, nombre)) {
-        puts("no atrape ninguno");
+        log_debug(default_logger, "Pokemon %s: capturados 0/%d", nombre, cantidad_objetivo);
         return true;
     }
-
-    int cantidad_objetivo = (int) dictionary_get(mapa_objetivos, nombre);
     int cantidad_atrapado = (int) dictionary_get(atrapados, nombre);
-    printf("Atrapados: %d . Objetivo: %d", cantidad_atrapado,cantidad_objetivo);
+
+    log_debug(default_logger, "Pokemon %s: capturados %d/%d", nombre, cantidad_atrapado, cantidad_objetivo);
     return cantidad_objetivo > cantidad_atrapado;
 }
 

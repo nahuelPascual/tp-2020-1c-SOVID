@@ -13,6 +13,7 @@
 #include <delibird-commons/model/ack.h>
 #include <delibird-commons/model/suscripcion.h>
 #include "pokemon.h"
+#include "configuration.h"
 
 typedef struct {
     int id_entrenador;

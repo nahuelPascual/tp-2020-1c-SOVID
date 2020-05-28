@@ -10,8 +10,9 @@
 #include <commons/collections/list.h>
 #include <commons/collections/queue.h>
 #include "entrenador.h"
+#include "configuration.h"
 
-t_queue* cola_ready; // se usaria solo para FIFO porque para los otros algoritmos es mas util una lista (supongo)
+t_queue* cola_ready; // se usaria solo para FIFO porque para los otros algoritmos es mas util una lista
 
 void planificador_init();
 void planificador_despertar();

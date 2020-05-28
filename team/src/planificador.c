@@ -4,18 +4,18 @@
 
 #include "planificador.h"
 
-static enum {FIFO, ROUND_ROBIN, SJF};
+static enum {FIFO, ROUND_ROBIN, SJF, SJF_CON_DESALOJO};
 static sem_t sem_entrenadores_planificables;
 static int algoritmo;
 
 static void planificar();
 static void planificar_FIFO();
 static void planificar_RR(int quantum);
+static int normalizar_algoritmo_planificacion(char* algoritmo);
 
 void planificador_init() {
     sem_init(&sem_entrenadores_planificables, 0, 0);
-//    TODO algoritmo = config->algoritmo;
-    algoritmo = FIFO;
+    algoritmo = normalizar_algoritmo_planificacion(config_team->algoritmo_planificacion);
     cola_ready = queue_create();
     planificar();
 }
@@ -32,10 +32,10 @@ static void planificar(){
             planificar_FIFO();
             break;
         case ROUND_ROBIN:
-            planificar_RR(3); //TODO parametrizar (config)
+            planificar_RR(config_team->quantum);
             break;
         default:
-            puts("Algoritmo no definido");
+            log_error(default_logger, "Algoritmo de planificacion no definido");
             exit(1);
         }
     }
@@ -49,4 +49,21 @@ static void planificar_FIFO() {
 
 static void planificar_RR(int quantum) {
     entrenador_otorgar_ciclos_ejecucion(queue_pop(cola_ready), quantum);
+}
+
+static int normalizar_algoritmo_planificacion(char* algoritmo) {
+    if (string_equals_ignore_case(algoritmo, "FIFO")) {
+        return FIFO;
+    }
+    if (string_equals_ignore_case(algoritmo, "RR")) {
+        return ROUND_ROBIN;
+    }
+    if (string_equals_ignore_case(algoritmo, "SJF")) {
+        return SJF;
+    }
+    if (string_equals_ignore_case(algoritmo, "SJF-CD")) {
+        return SJF_CON_DESALOJO;
+    }
+    log_error(default_logger, "Algoritmo de planificacion no valido");
+    exit(1);
 }

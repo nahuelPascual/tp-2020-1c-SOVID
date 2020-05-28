@@ -15,7 +15,7 @@
 #include "planificador.h"
 #include "pokemon.h"
 #include "sender.h"
-#include "utils/parser.h"
+#include "configuration.h"
 
 typedef enum {
     NEW, READY, EXECUTE, BLOCKED_IDLE, BLOCKED_WAITING, BLOCKED_FULL, EXIT

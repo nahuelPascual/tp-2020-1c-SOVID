@@ -60,7 +60,7 @@ t_captura* get_mensaje_enviado(int id_mensaje) { //TODO orden superior
 }
 
 static int enviar_broker(t_paquete* p) {
-    int broker = ipc_conectarse_a("127.0.0.1", "8081"); // TODO levantar de config
+    int broker = ipc_conectarse_a(config_team->ip_broker, config_team->puerto_broker);
     ipc_enviar_a(broker, p);
     ipc_cerrar(broker);
     return broker;

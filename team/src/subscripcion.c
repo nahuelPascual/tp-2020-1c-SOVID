@@ -8,25 +8,25 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion);
 static void procesar_appeared_pokemon(t_appeared_pokemon* appeared_pokemon);
 static void procesar_localized_pokemon(t_localized_pokemon* localized_pokemon);
 static void procesar_caught_pokemon(t_paquete* paquete);
-static void escuchar_en(int con);
+static void escuchar_a(int con);
 
-void escuchar() {
-    int server = ipc_escuchar_en("127.0.0.1", "8082"); //TODO levantar de config
+void escuchar_gameboy() {
+    int server = ipc_escuchar_en(config_team->ip_team, config_team->puerto_team);
     while(1) {
         int cliente = ipc_esperar_cliente(server);
-        escuchar_en(cliente);
+        escuchar_a(cliente);
     }
 }
 
 void suscribirse_a(t_tipo_mensaje tipo_mensaje) {
 	pthread_t thread;
-	int servidor = enviar_suscripcion(tipo_mensaje);
-	pthread_create(&thread, NULL, (void*)escuchar_en, servidor);
+	int broker = enviar_suscripcion(tipo_mensaje);
+	pthread_create(&thread, NULL, (void*)escuchar_a, broker);
 	pthread_detach(thread);
 }
 
 static void procesar_appeared_pokemon(t_appeared_pokemon* appeared_pokemon) {
-    printf("Recibido APPEARED_POKEMON (%s)\n", appeared_pokemon->nombre);
+    log_debug(default_logger, "Recibido APPEARED_POKEMON (%s)", appeared_pokemon->nombre);
     procesar_appeared_pokemon_(appeared_pokemon->nombre, appeared_pokemon->posicion);
 }
 
@@ -46,7 +46,7 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
 }
 
 static void procesar_localized_pokemon(t_localized_pokemon* localized_pokemon) {
-    printf("Recibido LOCALIZED_POKEMON (%s)\n", localized_pokemon->nombre);
+    log_debug(default_logger, "Recibido LOCALIZED_POKEMON (%s)", localized_pokemon->nombre);
     if (is_pokemon_conocido(localized_pokemon->nombre)) {
         return;
     }
@@ -57,7 +57,7 @@ static void procesar_localized_pokemon(t_localized_pokemon* localized_pokemon) {
 }
 
 static void procesar_caught_pokemon(t_paquete* paquete) {
-    printf("Recibido CAUGHT_POKEMON (%d)\n", paquete->header->correlation_id_mensaje);
+    log_debug(default_logger, "Recibido CAUGHT_POKEMON (id_catch_pokemon: %d)", paquete->header->correlation_id_mensaje);
     t_captura* intento_captura = get_mensaje_enviado(paquete->header->correlation_id_mensaje);
     if (intento_captura == NULL) {
         return;
@@ -75,7 +75,7 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
     entrenador->estado = BLOCKED_IDLE;
 }
 
-static void escuchar_en(int con) {
+static void escuchar_a(int con) {
     while(ipc_hay_datos_para_recibir_de(con)){
         t_paquete* paquete = ipc_recibir_de(con);
 
@@ -94,7 +94,7 @@ static void escuchar_en(int con) {
             pthread_detach(thread);
             break;
         default:
-            puts("Recibido mensaje invalido");
+            log_error(default_logger, "Recibido mensaje invalido: tipo de mensaje %d", paquete->header->tipo_mensaje);
             continue;
         }
 

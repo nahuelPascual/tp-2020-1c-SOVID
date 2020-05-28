@@ -61,7 +61,7 @@ void entrenador_execute(t_entrenador* e) {
         pthread_mutex_lock(&mx_execute);
 
         e->estado = EXECUTE;
-        sleep(1); // TODO levantar de la config
+        sleep(config_team->retardo_ciclo_cpu);
 
         t_pokemon* pokemon = e->objetivo_actual;
         if(calcular_remaining(e, pokemon->ubicacion) == 0) {

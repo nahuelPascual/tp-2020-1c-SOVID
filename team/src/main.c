@@ -12,21 +12,21 @@
 #include "subscripcion.h"
 #include "sender.h"
 #include "pokemon.h"
-#include "utils/parser.h"
-#include "utils/objetivos.h"
+#include "configuration.h"
+#include "objetivos.h"
 #include "entrenador.h"
 #include "planificador.h"
 
 void crear_hilos_entrenador();
 void crear_hilos_suscriptor();
-void crear_gameboy_listener(t_config_team* config_team);
+void crear_gameboy_listener();
 
 int main(int argc, char **argv) {
     config_team_init();
-    t_dictionary* objetivos_globales = calcular_objetivos_globales(entrenador_all());
+    t_dictionary* objetivos_globales = calcular_objetivos_globales(entrenador_get_all());
 
-	  crear_hilos_suscriptor();
-	  crear_gameboy_listener(config_team); // TODO con la config global no seria necesario pasarla por parametro
+    crear_hilos_suscriptor();
+    crear_gameboy_listener();
 
     init_pokemon_map();
     crear_hilos_entrenador();
@@ -59,8 +59,8 @@ void crear_hilos_suscriptor() {
     suscribirse_a(CAUGHT_POKEMON);
 }
 
-void crear_gameboy_listener(t_config_team* config_team) {
+void crear_gameboy_listener() {
     pthread_t gameboyListener;
-    pthread_create(&gameboyListener, NULL, (void*)escuchar, NULL);
+    pthread_create(&gameboyListener, NULL, (void*)escuchar_gameboy, NULL);
     pthread_detach(gameboyListener);
 }

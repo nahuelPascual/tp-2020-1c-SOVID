@@ -14,10 +14,11 @@
 #include "sender.h"
 #include "entrenador.h"
 #include "pokemon.h"
-#include "utils/objetivos.h"
+#include "objetivos.h"
+#include "configuration.h"
 #include "planificador.h"
 
 void suscribirse_a(t_tipo_mensaje tipo_mensaje);
-void escuchar();
+void escuchar_gameboy();
 
 #endif //TEAM_SUBSCRIPCION_H

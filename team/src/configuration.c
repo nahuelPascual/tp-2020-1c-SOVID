@@ -1,11 +1,11 @@
 /*
- * parser.c
+ * configuration.c
  *
  *  Created on: 10 may. 2020
  *      Author: utnso
  */
 
-#include "parser.h"
+#include "configuration.h"
 
 static char* const default_logger_path = "default.log";
 static char* const config_path = "team.config";
@@ -37,6 +37,8 @@ void config_team_init() {
     config_team->estimacion_inicial = config_get_int_value(config, "ESTIMACION_INICIAL");
     config_team->ip_broker = config_get_string_value(config, "IP_BROKER");
     config_team->puerto_broker = config_get_string_value(config, "PUERTO_BROKER");
+    config_team->ip_team = config_get_string_value(config, "IP_TEAM");
+    config_team->puerto_team = config_get_string_value(config, "PUERTO_TEAM");
     config_team->log_file = config_get_string_value(config, "LOG_FILE");
 
     logger = iniciar_team_logger(config_team->log_file);
@@ -121,6 +123,8 @@ static void log_config_team(t_config_team* config_team){
     log_debug(default_logger, "Estimacion Inicial: %i", config_team->estimacion_inicial);
     log_debug(default_logger, "IP Broker: %s", config_team->ip_broker);
     log_debug(default_logger, "IP Puerto: %s", config_team->puerto_broker);
+    log_debug(default_logger, "IP Team: %s", config_team->ip_team);
+    log_debug(default_logger, "IP Team: %s", config_team->puerto_team);
     log_debug(default_logger, "Log File: %s", config_team->log_file);
 }
 
@@ -136,5 +140,3 @@ static t_log* iniciar_default_logger() {
 static t_log* iniciar_team_logger(char* logger_path) {
     return log_create(logger_path, "TEAM", true, LOG_LEVEL_INFO);
 }
-
-

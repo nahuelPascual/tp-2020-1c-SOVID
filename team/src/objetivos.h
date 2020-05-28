@@ -9,7 +9,7 @@
 #define UTILS_OBJETIVOS_H_
 
 #include <commons/collections/list.h>
-#include "parser.h"
+#include "configuration.h"
 
 t_dictionary* calcular_objetivos_globales(t_list* entrenadores);
 void calcular_objetivos_entrenador(void*);
