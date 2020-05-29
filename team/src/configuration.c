@@ -62,18 +62,11 @@ static t_list* parse_entrenadores(){
    char** array_pokemones = config_get_array_value(config, "POKEMON_ENTRENADORES");
 
    for (int i = 0; array_posiciones[i] != NULL; ++i) {
-       t_entrenador* entrenador = malloc(sizeof(t_entrenador));
        t_coord* posicion = parse_posicion_entrenador(array_posiciones[i]);
        t_list* objetivos = parse_pokemones(array_objetivos[i]);
        t_list* pokemones = parse_pokemones(array_pokemones[i]);
 
-       // TODO hacer un constructor en entrenador.c/h
-       entrenador->id = i;
-       entrenador->posicion = posicion;
-       entrenador->objetivos = objetivos;
-       entrenador->capturados = pokemones;
-       entrenador->estado = NEW;
-       entrenador->objetivo_actual = NULL;
+       t_entrenador* entrenador = entrenador_new(i, objetivos, pokemones, posicion);
 
        list_add(entrenadores, entrenador);
 

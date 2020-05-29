@@ -22,14 +22,23 @@ typedef enum {
 } t_estado;
 
 typedef struct {
+    int cpu;
+    int rafaga_actual;
+    int cant_rafagas;
+} t_info;
+
+typedef struct {
     int id;
     t_list* objetivos;
     t_list* capturados;
     t_estado estado;
     t_coord* posicion;
     t_pokemon* objetivo_actual;
+    t_info* metricas;
 } t_entrenador;
 
+
+t_entrenador* entrenador_new(int id, t_list* objetivos, t_list* capturados,t_coord* posicion);
 t_entrenador* entrenador_get_libre_mas_cercano(t_coord* posicion_buscada);
 void entrenador_init_list(t_list* e);
 void entrenador_set_ready(t_entrenador* e);

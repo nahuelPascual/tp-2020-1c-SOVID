@@ -15,6 +15,30 @@ static void avanzar(t_entrenador* e);
 static void log_entrenador(void*);
 static void log_pokemon(char*);
 
+static t_info* metricas_new(){
+    t_info* metricas = malloc(sizeof(t_info));
+
+    metricas->cpu = 0;
+    metricas->rafaga_actual = 0;
+    metricas->cant_rafagas = 0;
+
+    return metricas;
+}
+
+t_entrenador* entrenador_new(int id, t_list* objetivos, t_list* capturados, t_coord* posicion){
+    t_entrenador* entrenador = malloc(sizeof(t_entrenador));
+
+    entrenador->id = id;
+    entrenador->objetivos = objetivos;
+    entrenador->capturados = capturados;
+    entrenador->posicion = posicion;
+    entrenador->estado = NEW;
+    entrenador->objetivo_actual = NULL;
+    entrenador->metricas = metricas_new();
+
+    return entrenador;
+}
+
 void entrenador_init_list(t_list* e) {
     pthread_mutex_init(&mx_execute, NULL);
     entrenadores = list_create();
