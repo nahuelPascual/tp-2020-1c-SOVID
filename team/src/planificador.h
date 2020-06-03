@@ -7,14 +7,16 @@
 
 #include <semaphore.h>
 #include <pthread.h>
+#include <math.h>
+#include <stdbool.h>
 #include <commons/collections/list.h>
 #include <commons/collections/queue.h>
 #include "entrenador.h"
 #include "configuration.h"
 
-t_queue* cola_ready; // se usaria solo para FIFO porque para los otros algoritmos es mas util una lista
+pthread_mutex_t mx_cola_ready;
 
 void planificador_init();
-void planificador_despertar();
+void planificador_encolar_ready(t_entrenador* e);
 
 #endif //TEAM_PLANIFICADOR_H

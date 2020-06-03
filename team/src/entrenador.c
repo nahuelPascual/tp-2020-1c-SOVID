@@ -6,24 +6,25 @@
 
 static t_list* entrenadores;
 static t_dictionary* sem_entrenador; // array con los semaforos para sincronizar a los entrenadores
-static pthread_mutex_t mx_execute;
 
-static bool is_disponible(void* elemento);
-static bool is_ready(void* elemento);
 static int calcular_remaining(t_entrenador* e, t_coord* pos);
 static void avanzar(t_entrenador* e);
 static void log_entrenador(void*);
 static void log_pokemon(void*);
 static void log_objetivo(void*);
+static t_list* get_disponibles();
 
-static t_info* metricas_new(){
-    t_info* metricas = malloc(sizeof(t_info));
+static t_info* create_info(){
+    t_info* info = malloc(sizeof(t_info));
 
-    metricas->cpu = 0;
-    metricas->rafaga_actual = 0;
-    metricas->cant_rafagas = 0;
+    info->ciclos_cpu_ejecutados = 0;
+    info->deadlocks = 0;
+    info->ejecucion_parcial = 0;
+    info->estimado_siguiente_rafaga = config_team->estimacion_inicial;
+    info->ultima_ejecucion = config_team->estimacion_inicial;
+    info->ultima_estimacion = config_team->estimacion_inicial;
 
-    return metricas;
+    return info;
 }
 
 t_entrenador* entrenador_new(int id, t_list* objetivos, t_list* capturados, t_coord* posicion){
@@ -35,28 +36,29 @@ t_entrenador* entrenador_new(int id, t_list* objetivos, t_list* capturados, t_co
     entrenador->posicion = posicion;
     entrenador->estado = NEW;
     entrenador->objetivo_actual = NULL;
-    entrenador->metricas = metricas_new();
+    entrenador->info = create_info();
 
     return entrenador;
 }
 
-void entrenador_init_list(t_list* e) {
-    pthread_mutex_init(&mx_execute, NULL);
+void entrenador_init_list(t_list* nuevos_entrenadores) {
+    sem_init(&sem_post_ejecucion, 0, 0);
     entrenadores = list_create();
-    list_add_all(entrenadores, e);
-    void _init_semaforos(void* e) {
+    list_add_all(entrenadores, nuevos_entrenadores);
+    void _init_semaforos(void* elem) {
         sem_t newSem;
         sem_init(&newSem, 0, 0);
         sem_t* sem = malloc(sizeof(sem_t));
         memcpy(sem, &newSem, sizeof(sem_t));
-        dictionary_put(sem_entrenador, string_itoa(((t_entrenador*)e)->id), sem);
+        t_entrenador* e = (t_entrenador*) elem;
+        dictionary_put(sem_entrenador, string_itoa(e->id), sem);
     }
     sem_entrenador = dictionary_create();
     list_iterate(entrenadores, _init_semaforos);
 }
 
 t_entrenador* entrenador_get_libre_mas_cercano(t_coord* posicion_buscada) {
-    t_list* disponibles = list_filter(entrenadores, (void*)is_disponible);
+    t_list* disponibles = get_disponibles();
     int menor = 10000, entrenador_mas_cercano;
     for (int i=0 ; i<list_size(disponibles) ; i++) {
         t_entrenador* entrenador = list_get(disponibles, i);
@@ -70,21 +72,25 @@ t_entrenador* entrenador_get_libre_mas_cercano(t_coord* posicion_buscada) {
     return (t_entrenador*) list_get(entrenadores, entrenador_mas_cercano);
 }
 
-t_list* entrenador_filtrar_ready() {
-    return list_filter(entrenadores,(void*)is_ready);
-}
-
 void entrenador_otorgar_ciclos_ejecucion(t_entrenador* entrenador, int cant) {
     for (int i = 0 ; i < cant ; i++) {
-        sem_post((sem_t*)dictionary_get(sem_entrenador, entrenador->id));
+        sem_post((sem_t*)dictionary_get(sem_entrenador, string_itoa(entrenador->id)));
     }
 }
 
 void entrenador_execute(t_entrenador* e) {
     while(1) {
-        sem_wait(dictionary_get(sem_entrenador, string_itoa(e->id)));
-        pthread_mutex_lock(&mx_execute);
+        char* id = string_itoa(e->id); // TODO sem_t* get_semaforo(id) para evitar leaks y simplificar codigo
+        sem_t* sem = dictionary_get(sem_entrenador, id);
+        free(id);
+        if (sem_trywait(sem) != 0) { // el semaforo se bloquearia
+            if (e->estado == EXECUTE) {
+                sem_post(&sem_post_ejecucion);
+            }
+            sem_wait(sem);
+        }
 
+        e->info->ciclos_cpu_ejecutados++;
         e->estado = EXECUTE;
         sleep(config_team->retardo_ciclo_cpu);
 
@@ -95,13 +101,19 @@ void entrenador_execute(t_entrenador* e) {
         } else {
             avanzar(e);
         }
-
-        pthread_mutex_unlock(&mx_execute);
     }
 }
 
 t_entrenador* entrenador_get(int id) {
     return list_get(entrenadores, id);
+}
+
+t_list* entrenador_get_execute() {
+    bool _is_execute(void* elem) {
+        t_entrenador* e = (t_entrenador*) elem;
+        return e->estado == EXECUTE;
+    }
+    return list_filter(entrenadores, (void*)_is_execute);
 }
 
 t_list* entrenador_get_all() {
@@ -112,16 +124,12 @@ int entrenador_get_count() {
     return list_size(entrenadores);
 }
 
-int entrenador_calcular_remaining(t_entrenador* e, t_coord* pos) {
+int entrenador_calcular_remaining(t_entrenador* e) {
     if (e->objetivo_actual == NULL) {
-        return 0;
+        log_error(default_logger, "Calculando remaining para entrenador #%d sin objetivo", e->id);
+        return -1;
     }
-    return calcular_remaining(e, pos);
-}
-
-void entrenador_set_ready(t_entrenador* e) {
-    e->estado = READY;
-    queue_push(cola_ready, e);
+    return calcular_remaining(e, e->objetivo_actual->ubicacion); // TODO calcular_distancia y +1(captura) +5(intercambio)
 }
 
 static void avanzar(t_entrenador* e) {
@@ -142,18 +150,16 @@ static void avanzar(t_entrenador* e) {
     }
 }
 
+static t_list* get_disponibles() {
+    bool _is_disponible(void* elemento) {
+        t_entrenador* entrenador = (t_entrenador*) elemento;
+        return entrenador->estado == NEW || entrenador->estado == BLOCKED_IDLE;
+    }
+    return list_filter(entrenadores, (void*)_is_disponible);
+}
+
 static int calcular_remaining(t_entrenador* e, t_coord* pos) {
     return (int) fabs((double)pos->x - (double)e->posicion->x) + fabs((double)pos->y - (double)e->posicion->y);
-}
-
-static bool is_disponible(void* elemento) {
-    t_entrenador* entrenador = (t_entrenador*) elemento;
-    return entrenador->estado == NEW || entrenador->estado == BLOCKED_IDLE;
-}
-
-static bool is_ready(void* elemento) {
-    t_entrenador* entrenador = (t_entrenador*) elemento;
-    return entrenador->estado == READY;
 }
 
 void log_entrenadores(t_list* entrenadores){
@@ -166,9 +172,9 @@ static void log_entrenador(void* element){
   log_debug(default_logger, "       Entrenador:");
   log_debug(default_logger, "               *Posicision: x=%i ; y=%i", entrenador->posicion->x, entrenador->posicion->y);
   log_debug(default_logger, "               *Objetivos: ");
-  list_iterate(entrenador->objetivos, &log_objetivo);
+  list_iterate(entrenador->objetivos, (void*)log_pokemon);
   log_debug(default_logger, "               *Atrapados: ");
-  list_iterate(entrenador->capturados, &log_pokemon);
+  list_iterate(entrenador->capturados, (void*)log_pokemon);
 }
 
 static void log_pokemon(void* elemento){

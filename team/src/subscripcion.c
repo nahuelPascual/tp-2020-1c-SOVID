@@ -41,8 +41,7 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
     if (entrenador == NULL) {
         return;
     }
-    entrenador_set_ready(entrenador);
-    planificador_despertar();
+    planificador_encolar_ready(entrenador);
 }
 
 static void procesar_localized_pokemon(t_localized_pokemon* localized_pokemon) {
