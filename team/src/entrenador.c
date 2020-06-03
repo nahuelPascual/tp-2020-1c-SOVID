@@ -13,7 +13,8 @@ static bool is_ready(void* elemento);
 static int calcular_remaining(t_entrenador* e, t_coord* pos);
 static void avanzar(t_entrenador* e);
 static void log_entrenador(void*);
-static void log_pokemon(char*);
+static void log_pokemon(void*);
+static void log_objetivo(void*);
 
 static t_info* metricas_new(){
     t_info* metricas = malloc(sizeof(t_info));
@@ -87,7 +88,7 @@ void entrenador_execute(t_entrenador* e) {
         e->estado = EXECUTE;
         sleep(config_team->retardo_ciclo_cpu);
 
-        t_pokemon* pokemon = e->objetivo_actual;
+        t_pokemon_mapeado* pokemon = e->objetivo_actual;
         if(calcular_remaining(e, pokemon->ubicacion) == 0) {
             enviar_catch_pokemon(pokemon);
             e->estado = BLOCKED_WAITING;
@@ -165,11 +166,17 @@ static void log_entrenador(void* element){
   log_debug(default_logger, "       Entrenador:");
   log_debug(default_logger, "               *Posicision: x=%i ; y=%i", entrenador->posicion->x, entrenador->posicion->y);
   log_debug(default_logger, "               *Objetivos: ");
-  list_iterate(entrenador->objetivos, &log_pokemon);
+  list_iterate(entrenador->objetivos, &log_objetivo);
   log_debug(default_logger, "               *Atrapados: ");
   list_iterate(entrenador->capturados, &log_pokemon);
 }
 
-static void log_pokemon(char* pokemon){
-    log_debug(default_logger, "                         -%s", pokemon);
+static void log_pokemon(void* elemento){
+    t_pokemon_capturado* pokemon = (t_pokemon_capturado*) elemento;
+    log_debug(default_logger, "                         -%s (%s)", pokemon->nombre, pokemon->es_objetivo ? "OBJETIVO" : "INTERCAMBIO");
+}
+
+static void log_objetivo(void* elemento){
+    t_pokemon_objetivo* pokemon = (t_pokemon_objetivo*) elemento;
+    log_debug(default_logger, "                         -%s (%s)", pokemon->nombre, pokemon->fue_capturado ? "CAPTURADO" : "BUSCADO");
 }

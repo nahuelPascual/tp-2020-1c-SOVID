@@ -14,6 +14,7 @@
 #include <commons/collections/list.h>
 #include <delibird-commons/model/mensaje.h>
 #include "entrenador.h"
+#include "objetivos.h"
 
 typedef struct {
     int tiempo_reconexion;

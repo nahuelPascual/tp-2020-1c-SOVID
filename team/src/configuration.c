@@ -18,6 +18,7 @@ static t_coord* parse_posicion_entrenador(char*);
 static t_list* parse_pokemones(char*);
 static t_log* iniciar_team_logger(char*);
 static void log_config_team(t_config_team*);
+static void verficar_objetivos(t_entrenador* e);
 
 void config_team_init() {
     default_logger = iniciar_default_logger();
@@ -26,7 +27,7 @@ void config_team_init() {
     leer_config();
 
     t_list* entrenadores = parse_entrenadores();
-    log_entrenadores(entrenadores); // logeo los entrenadores
+    log_entrenadores(entrenadores);
     entrenador_init_list(entrenadores);
     list_destroy(entrenadores);
 
@@ -73,6 +74,8 @@ static t_list* parse_entrenadores(){
        free(array_posiciones[i]);
        free(array_objetivos[i]);
        free(array_pokemones[i]);
+
+       verficar_objetivos(entrenador);
    }
 
    free(array_posiciones);
@@ -80,6 +83,25 @@ static t_list* parse_entrenadores(){
    free(array_pokemones);
 
    return entrenadores;
+}
+
+static void verficar_objetivos(t_entrenador* e) {
+    void _marcar_capturados(void* elemento) {
+        t_pokemon_capturado* capturado = (t_pokemon_capturado*) elemento;
+
+        bool _condition(void* _elemento) {
+            t_pokemon_objetivo* objetivo = (t_pokemon_objetivo*) _elemento;
+            return string_equals_ignore_case(objetivo->nombre, capturado->nombre) && !objetivo->fue_capturado;
+        }
+
+        t_pokemon_objetivo* objetivo = list_find(e->objetivos, (void*)_condition);
+
+        if (objetivo != NULL) {
+            objetivo->fue_capturado = true;
+            capturado->es_objetivo = true;
+        }
+    }
+    list_iterate(e->capturados, (void*)_marcar_capturados);
 }
 
 static t_coord* parse_posicion_entrenador(char* posicion_entrenador){
@@ -99,8 +121,11 @@ static t_list* parse_pokemones(char* array_pokemones){
     char** pok_splitted = string_split(array_pokemones, "|");
     int i = 0;
     while (pok_splitted[i] != NULL) {
-        char* pokemon = pok_splitted[i];
-        string_to_upper(pokemon);
+        char* nombre = pok_splitted[i];
+        string_to_upper(nombre);
+        t_pokemon_objetivo* pokemon = malloc(sizeof(t_pokemon_capturado)); // capturado y objetivo son estructuralmente identicos pero tienen una semantica diferente
+        pokemon->nombre = nombre;
+        pokemon->fue_capturado = false;
         list_add(pokemones, pokemon);
         i++;
     }

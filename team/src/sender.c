@@ -29,7 +29,7 @@ void enviar_get_pokemon(char* pokemon, void* cantidad) {
 	paquete_liberar(paquete);
 }
 
-void enviar_catch_pokemon(t_pokemon* pokemon) {
+void enviar_catch_pokemon(t_pokemon_mapeado* pokemon) {
     t_catch_pokemon* mensaje = mensaje_crear_catch_pokemon(pokemon->pokemon, pokemon->ubicacion->x, pokemon->ubicacion->y);
     t_paquete* paquete = paquete_from_catch_pokemon(mensaje);
 

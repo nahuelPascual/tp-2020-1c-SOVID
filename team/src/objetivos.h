@@ -12,8 +12,6 @@
 #include "configuration.h"
 
 t_dictionary* calcular_objetivos_globales(t_list* entrenadores);
-void calcular_objetivos_entrenador(void*);
-void actualizar_objetivos_globales(void*);
 bool is_pokemon_requerido(char* nombre);
 
 #endif /* UTILS_OBJETIVOS_H_ */

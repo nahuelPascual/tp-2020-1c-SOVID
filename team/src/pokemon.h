@@ -17,7 +17,17 @@ typedef struct {
     char* pokemon;
     t_coord* ubicacion;
     int cantidad;
-} t_pokemon;
+} t_pokemon_mapeado;
+
+typedef struct {
+    char* nombre;
+    bool fue_capturado;
+} t_pokemon_objetivo;
+
+typedef struct {
+    char* nombre;
+    bool es_objetivo;
+} t_pokemon_capturado;
 
 void init_pokemon_map();
 void pokemon_agregar_al_mapa(char* nombre, int cantidad, t_coord* posicion);

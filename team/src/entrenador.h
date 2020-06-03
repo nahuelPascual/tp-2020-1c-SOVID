@@ -33,7 +33,7 @@ typedef struct {
     t_list* capturados;
     t_estado estado;
     t_coord* posicion;
-    t_pokemon* objetivo_actual;
+    t_pokemon_mapeado* objetivo_actual;
     t_info* metricas;
 } t_entrenador;
 

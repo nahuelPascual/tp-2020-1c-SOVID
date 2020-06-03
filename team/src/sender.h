@@ -23,7 +23,7 @@ typedef struct {
 
 int enviar_suscripcion(t_tipo_mensaje tipo_mensaje);
 void enviar_get_pokemon(char* pokemon, void* cantidad);
-void enviar_catch_pokemon(t_pokemon* pokemon);
+void enviar_catch_pokemon(t_pokemon_mapeado* pokemon);
 void enviar_ack(uint32_t id_mensaje);
 bool is_respuesta_esperada(int id_mensaje_correlativo);
 t_captura* get_mensaje_enviado(int id_mensaje);
