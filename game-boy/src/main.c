@@ -12,6 +12,7 @@
 #include "mensaje.h"
 #include "config.h"
 #include "test/serialization.h"
+#include "test/broker.h"
 
 int get_tipo_mensaje_from_args(char*);
 
