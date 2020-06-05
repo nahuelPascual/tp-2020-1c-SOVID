@@ -27,13 +27,13 @@ void mensaje_despachable_liberar(t_mensaje_despachable* mensaje_despachable) {
 }
 
 bool mensaje_despachable_tiene_todos_los_acks(t_mensaje_despachable* mensaje_despachable) {
-    int get_suscriptor(int suscriptor) {
-        return suscriptor;
+    bool igualigual(int un_suscriptor, int otro_suscriptor) {
+        return un_suscriptor == otro_suscriptor;
     }
 
-    return list_equals_by(mensaje_despachable->suscriptores_a_los_que_fue_enviado,
-                          mensaje_despachable->suscriptores_que_lo_recibieron,
-                          (void*) get_suscriptor);
+    return list_equals(mensaje_despachable->suscriptores_a_los_que_fue_enviado,
+                       mensaje_despachable->suscriptores_que_lo_recibieron,
+                       (void*) igualigual);
 }
 
 t_mensaje_despachable* mensaje_despachable_find_by_id_in(t_list* lista, uint32_t id_mensaje) {

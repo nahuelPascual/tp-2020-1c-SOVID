@@ -7,29 +7,25 @@
 
 #include "list.h"
 
-bool list_equals_by(t_list* una_lista, t_list* otra_lista, void* (*key_extractor)(void*)) {
-    if(list_size(una_lista) != list_size(otra_lista))
-        return false;
+bool list_equals(t_list* una_lista, t_list* otra_lista, bool (*comparador)(void*, void*)) {
+    t_list* copia_otra_lista = list_duplicate(otra_lista);
 
-    bool _order_comparator(void* un_elemento, void* otro_elemento) {
-        return key_extractor(un_elemento) < key_extractor(otro_elemento);
-    }
-    bool _equality_comparator(void* un_elemento, void* otro_elemento) {
-        return key_extractor(un_elemento) == key_extractor(otro_elemento);
-    }
+    for(int i = 0; i < list_size(una_lista); i++) {
 
-    t_list* una_lista_ordenada = list_sorted(una_lista, (void*) _order_comparator);
-    t_list* otra_lista_ordenada = list_sorted(otra_lista, (void*) _order_comparator);
+        void* un_elemento = list_get(una_lista, i);
 
-    int i = 0;
-    bool listas_iguales = true;
-    while(listas_iguales && i < list_size(una_lista)) {
-        void* un_elemento = list_get(una_lista_ordenada, i);
-        void* otro_elemento = list_get(otra_lista_ordenada, i);
+        bool es_igual_a_un_elemento(void* otro_elemento) {
+            return comparador(un_elemento, otro_elemento);
+        }
 
-        listas_iguales = listas_iguales && _equality_comparator(un_elemento, otro_elemento);
-        i++;
+        void* eliminado = list_remove_by_condition(copia_otra_lista, (void*) es_igual_a_un_elemento);
+
+        if(!eliminado) {
+            list_destroy(copia_otra_lista);
+            return false;
+        }
     }
 
-    return listas_iguales;
+    list_destroy(copia_otra_lista);
+    return list_is_empty(copia_otra_lista);
 }
