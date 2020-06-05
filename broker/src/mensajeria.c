@@ -30,6 +30,22 @@ void _informar_id_mensaje_a(int cliente, int id_mensaje) {
     informe_id_liberar(informe_id);
 }
 
+bool es_mensaje_redundante(t_paquete* paquete, t_cola* cola) {
+    if(paquete_mensaje_es_respuesta(paquete)) {
+        bool _comparador(uint32_t* un_elemento) {
+            return paquete->header->correlation_id_mensaje == *un_elemento;
+        }
+        pthread_mutex_lock(&cola->mutex_correlativos);
+        bool ya_fue_recibido = list_any_satisfy(cola->correlativos_recibidos, (void*) _comparador);
+        if(!ya_fue_recibido) {
+            list_add(cola->correlativos_recibidos, &paquete->header->correlation_id_mensaje);
+        }
+        pthread_mutex_unlock(&cola->mutex_correlativos);
+        return ya_fue_recibido;
+    }
+    return false;
+}
+
 void _procesar_paquete_de(t_paquete* paquete, int cliente) {
     switch(paquete->header->tipo_paquete) {
     case SUSCRIPCION: {
@@ -64,18 +80,21 @@ void _procesar_paquete_de(t_paquete* paquete, int cliente) {
         break;
     }
     case MENSAJE: {
-        pthread_mutex_lock(&mutex_id_mensaje);
-        paquete->header->id_mensaje = id_mensaje++;
-        pthread_mutex_unlock(&mutex_id_mensaje);
-
-        _informar_id_mensaje_a(cliente, paquete->header->id_mensaje);
-
         t_cola* cola = dictionary_get(diccionario_de_colas, string_itoa(paquete->header->tipo_mensaje));
+        if(es_mensaje_redundante(paquete, cola)) {
+            paquete_liberar(paquete);
+        }
+        else {
+            pthread_mutex_lock(&mutex_id_mensaje);
+            paquete->header->id_mensaje = id_mensaje++;
+            pthread_mutex_unlock(&mutex_id_mensaje);
 
-        t_mensaje_despachable* mensaje_despachable = mensaje_despachable_crear(paquete);
+            _informar_id_mensaje_a(cliente, paquete->header->id_mensaje);
 
-        cola_push_mensaje_despachable(cola, mensaje_despachable);
+            t_mensaje_despachable* mensaje_despachable = mensaje_despachable_crear(paquete);
 
+            cola_push_mensaje_despachable(cola, mensaje_despachable);
+        }
         break;
     }
     default:

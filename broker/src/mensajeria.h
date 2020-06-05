@@ -9,6 +9,7 @@
 #define MENSAJERIA_H_
 
 #include <pthread.h>
+#include <stdbool.h>
 
 #include <commons/string.h>
 #include <commons/collections/dictionary.h>

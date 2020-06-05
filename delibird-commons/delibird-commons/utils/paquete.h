@@ -54,4 +54,6 @@ t_paquete* paquete_from_ack(t_ack* ack);
 t_paquete* paquete_from_suscripcion(t_suscripcion* suscripcion);
 t_paquete* paquete_from_informe_id(t_informe_id* informe_id);
 
+bool paquete_mensaje_es_respuesta(t_paquete* paquete);
+
 #endif //PAQUETE_H

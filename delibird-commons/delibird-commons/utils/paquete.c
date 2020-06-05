@@ -300,6 +300,10 @@ t_paquete* paquete_from_informe_id(t_informe_id* informe_id) {
     return paquete;
 }
 
+bool paquete_mensaje_es_respuesta(t_paquete* paquete) {
+    return paquete->header->tipo_mensaje == MENSAJE && paquete->header->correlation_id_mensaje > 0;
+}
+
 t_header* crear_header(t_tipo_paquete tipo_paquete, t_tipo_mensaje tipo_mensaje, uint32_t size) {
     t_header* header = malloc(sizeof(t_header));
 

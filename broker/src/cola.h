@@ -20,10 +20,12 @@
 typedef struct {
     t_queue* mensajes_despachables;
     t_list* suscriptores;
+    t_list* correlativos_recibidos;
 
     pthread_mutex_t mutex_mensajes_despachables;
     sem_t contador_mensajes_sin_despachar;
     pthread_mutex_t mutex_suscriptores;
+    pthread_mutex_t mutex_correlativos;
 } t_cola;
 
 t_cola* cola_crear();

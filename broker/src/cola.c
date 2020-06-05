@@ -11,10 +11,12 @@ t_cola* cola_crear() {
     t_cola* cola = malloc(sizeof(t_cola));
     cola->mensajes_despachables = queue_create();
     cola->suscriptores = list_create();
+    cola->correlativos_recibidos = list_create();
 
     pthread_mutex_init(&cola->mutex_mensajes_despachables, NULL);
     sem_init(&cola->contador_mensajes_sin_despachar, 0, 0);
     pthread_mutex_init(&cola->mutex_suscriptores, NULL);
+    pthread_mutex_init(&cola->mutex_correlativos, NULL);
 
     return cola;
 }
