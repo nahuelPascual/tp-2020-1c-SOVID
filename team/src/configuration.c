@@ -86,14 +86,13 @@ static t_list* parse_entrenadores(){
 }
 
 static void verficar_objetivos(t_entrenador* e) {
-    void _marcar_capturados(void* elemento) {
+    void _marcar_capturado(void* elemento) {
         t_pokemon_capturado* capturado = (t_pokemon_capturado*) elemento;
 
         bool _condition(void* _elemento) {
             t_pokemon_objetivo* objetivo = (t_pokemon_objetivo*) _elemento;
-            return string_equals_ignore_case(objetivo->nombre, capturado->nombre) && !objetivo->fue_capturado;
+            return !objetivo->fue_capturado && string_equals_ignore_case(objetivo->nombre, capturado->nombre);
         }
-
         t_pokemon_objetivo* objetivo = list_find(e->objetivos, (void*)_condition);
 
         if (objetivo != NULL) {
@@ -101,7 +100,7 @@ static void verficar_objetivos(t_entrenador* e) {
             capturado->es_objetivo = true;
         }
     }
-    list_iterate(e->capturados, (void*)_marcar_capturados);
+    list_iterate(e->capturados, (void*)_marcar_capturado);
 }
 
 static t_coord* parse_posicion_entrenador(char* posicion_entrenador){

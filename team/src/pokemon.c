@@ -42,11 +42,12 @@ void pokemon_sacar_del_mapa(char* nombre, t_coord* posicion) {
         if (p->ubicacion->x == posicion->x && p->ubicacion->y == posicion->y) {
             p->cantidad--;
             if (p->cantidad==0) {
-                list_remove(l, i);
+                list_remove_and_destroy_element(l, i, free);
             }
             break;
         }
     }
+    //TODO habria que eliminar el pokemon del mapa si eliminamos la unica posicion donde estaba
 }
 
 void pokemon_liberar_mapa() {

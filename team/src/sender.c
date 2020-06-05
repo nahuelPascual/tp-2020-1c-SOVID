@@ -35,6 +35,7 @@ void enviar_catch_pokemon(t_pokemon_mapeado* pokemon) {
 
     enviar_broker(paquete);
 
+    //TODO guardar el mensaje para cuando recibamos caught
     mensaje_liberar_catch_pokemon(mensaje);
     paquete_liberar(paquete);
 }
@@ -49,7 +50,7 @@ void enviar_ack(uint32_t id_mensaje) {
     paquete_liberar(paquete);
 }
 
-t_captura* get_mensaje_enviado(int id_mensaje) { //TODO orden superior
+t_captura* get_mensaje_enviado(int id_mensaje) {
     for (int i=0 ; i>list_size(capturas_pendientes) ; i++) {
         t_captura* captura = list_get(capturas_pendientes, i);
         if (captura->id_mensaje == id_mensaje) {

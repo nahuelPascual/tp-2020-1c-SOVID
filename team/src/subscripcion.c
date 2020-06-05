@@ -59,19 +59,25 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
     log_debug(default_logger, "Recibido CAUGHT_POKEMON (id_catch_pokemon: %d)", paquete->header->correlation_id_mensaje);
     t_captura* intento_captura = get_mensaje_enviado(paquete->header->correlation_id_mensaje);
     if (intento_captura == NULL) {
+        paquete_liberar(paquete);
         return;
     }
 
     t_caught_pokemon* caught_pokemon = paquete_to_caught_pokemon(paquete);
     t_entrenador* entrenador = entrenador_get(intento_captura->id_entrenador);
+
     if (caught_pokemon->is_caught){
         t_catch_pokemon* mensaje = intento_captura->mensaje_enviado;
-        string_to_upper(mensaje->nombre);
         list_add(entrenador->capturados, mensaje->nombre);
         pokemon_sacar_del_mapa(mensaje->nombre, mensaje->posicion);
+        entrenador_verificar_objetivos(entrenador);
+    } else {
+        entrenador->estado = BLOCKED_IDLE; // TODO deberia buscarle un pokemon del mapa? como saber cuales ya fueron asignados?
     }
 
-    entrenador->estado = BLOCKED_IDLE;
+    //TODO liberar intento_captura
+    mensaje_liberar_caught_pokemon(caught_pokemon);
+    paquete_liberar(paquete);
 }
 
 static void escuchar_a(int con) {
