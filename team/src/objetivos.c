@@ -39,6 +39,15 @@ static void actualizar_objetivos_globales(void* entrenador) {
     list_iterate(objetivos, (void*)_actualizar);
 }
 
+t_list* objetivos_get_especies() {
+    t_list* objetivos_globales = list_create();
+    void _get_objetivo(char* k, void* v) {
+        list_add(objetivos_globales, k);
+    }
+    dictionary_iterator(mapa_objetivos, (void*)_get_objetivo);
+    return objetivos_globales;
+}
+
 bool is_pokemon_requerido(char* nombre) {
     if (!dictionary_has_key(mapa_objetivos, nombre)) {
         log_debug(default_logger, "%s no es un objetivo del team", nombre);
@@ -54,6 +63,17 @@ bool is_pokemon_requerido(char* nombre) {
 
     log_debug(default_logger, "Pokemon %s: capturados %d/%d", nombre, cantidad_atrapado, cantidad_objetivo);
     return cantidad_objetivo > cantidad_atrapado;
+}
+
+void objetivos_descontar_requeridos(char* pokemon) {
+    int cant = (int) dictionary_get(mapa_objetivos, pokemon);
+    if (cant) {
+        dictionary_put(mapa_objetivos, pokemon, (void*) --cant);
+        if (cant == 0) dictionary_remove(mapa_objetivos, pokemon);
+    }
+    else {
+        log_warning(default_logger, "Se intento capturar mas %s que los requeridos por el team", pokemon);
+    }
 }
 
 static void log_objetivos_globales(t_dictionary* mapa_objetivos){

@@ -50,7 +50,6 @@ void pokemon_sacar_del_mapa(char* nombre, t_coord* posicion) {
             break;
         }
     }
-    //TODO habria que eliminar el pokemon del mapa si eliminamos la unica posicion donde estaba
 }
 
 void pokemon_liberar_mapa() {

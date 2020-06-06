@@ -15,6 +15,8 @@
 #include "configuration.h"
 
 void planificador_init();
-void planificador_encolar_ready(t_entrenador* e);
+void planificador_encolar_ready(t_entrenador*);
+void planificador_verificar_deadlock_exit(t_entrenador*);
+void planificador_admitir(t_entrenador*);
 
 #endif //TEAM_PLANIFICADOR_H

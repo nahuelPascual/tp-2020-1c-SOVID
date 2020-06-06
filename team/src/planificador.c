@@ -22,7 +22,6 @@ static int normalizar_algoritmo_planificacion(char* algoritmo);
 static t_entrenador* elegir_entrenador();
 static bool es_SJF();
 static t_entrenador* detectar_deadlock(t_entrenador*);
-static void verificar_deadlock_exit(t_entrenador*);
 
 void planificador_init() {
     sem_init(&sem_entrenadores_planificables, 0, 0);
@@ -57,21 +56,29 @@ static void planificar(){
 
         sem_wait(&sem_post_ejecucion);
 
-        // quantum consumido o SJF-CD
-        if (entrenador_planificado->estado == EXECUTE) {
-            planificador_encolar_ready(entrenador_planificado);
-            continue;
-        }
-
-        // acaba de concretar un intercambio
-        if (entrenador_planificado->deadlock) {
-            t_entrenador* otro_entrenador = entrenador_get(entrenador_planificado->intercambio->id_otro_entrenador);
-            entrenador_planificado->deadlock = otro_entrenador->deadlock = false;
-            free(entrenador_planificado->intercambio);
-            verificar_deadlock_exit(entrenador_planificado);
-            verificar_deadlock_exit(otro_entrenador);
-        } else {
-            verificar_deadlock_exit(entrenador_planificado);
+        switch (entrenador_planificado->estado) {
+            case EXECUTE: // quantum consumido o SJF-CD
+                planificador_encolar_ready(entrenador_planificado);
+                break;
+            case BLOCKED_IDLE: // acaba de capturar automaticamente al enviar catch
+                planificador_admitir(entrenador_planificado);
+                break;
+            case BLOCKED_WAITING:
+                break;
+            case EXIT: case BLOCKED_FULL:
+                // acaba de concretar un intercambio
+                if (entrenador_planificado->deadlock) {
+                    t_entrenador* otro_entrenador = entrenador_get(entrenador_planificado->intercambio->id_otro_entrenador);
+                    entrenador_planificado->deadlock = otro_entrenador->deadlock = false;
+                    free(entrenador_planificado->intercambio); // solo libero t_intercambio porque pokemons y ubicacion pertenecen a los entrenadores
+                    planificador_verificar_deadlock_exit(entrenador_planificado);
+                    planificador_verificar_deadlock_exit(otro_entrenador);
+                } else {
+                    planificador_verificar_deadlock_exit(entrenador_planificado);
+                }
+                break;
+            default:
+                log_error(default_logger, "Ejecuto un entrenador con estado invalido: %s", string_itoa(entrenador_planificado->estado));
         }
     }
 }
@@ -86,11 +93,11 @@ void planificador_encolar_ready(t_entrenador* e) {
         e->info->estimado_siguiente_rafaga = estimar_proxima_rafaga(e); // recalcula con mismos datos pero con ejecucion parcial actualizada
     }
     e->estado = READY;
-    queue_push(cola_ready, e);
+    queue_push(cola_ready, e); // TODO sincronizar. Lo llaman las suscripciones (se puede sincronizar la funcion?)
     sem_post(&sem_entrenadores_planificables);
 }
 
-static void verificar_deadlock_exit(t_entrenador* e) {
+void planificador_verificar_deadlock_exit(t_entrenador* e) {
     if (e->estado == EXIT && list_all_satisfy(entrenador_get_all(), (void*)entrenador_cumplio_objetivos)) {
         // TODO cerrar proceso por objetivo global cumplido
     }
@@ -102,6 +109,11 @@ static void verificar_deadlock_exit(t_entrenador* e) {
         otro_entrenador->info->deadlocks++;
         planificador_encolar_ready(e);
     }
+}
+
+void planificador_admitir(t_entrenador* e) {
+    entrenador_asignar_objetivo(e);
+    if(e->pokemon_buscado != NULL) planificador_encolar_ready(e);
 }
 
 static t_entrenador* detectar_deadlock(t_entrenador* entrenador) {

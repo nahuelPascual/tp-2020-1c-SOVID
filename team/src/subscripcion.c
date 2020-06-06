@@ -38,10 +38,10 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
 
     t_pokemon_mapeado* objetivo = pokemon_agregar_al_mapa(nombre, 1, posicion);
 
+    if (entrenador_asignado_a(objetivo)) return;
+
     t_entrenador* entrenador = entrenador_get_libre_mas_cercano(posicion);
-    if (entrenador == NULL) {
-        return;
-    }
+    if (entrenador == NULL) return;
 
     entrenador->pokemon_buscado = objetivo;
     planificador_encolar_ready(entrenador);
@@ -75,13 +75,18 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
 
     if (caught_pokemon->is_caught){
         list_add(entrenador->capturados, string_duplicate(mensaje->nombre));
-        entrenador_verificar_objetivos(entrenador);
-    } else {
-        entrenador->estado = BLOCKED_IDLE; // TODO deberia buscarle un pokemon del mapa? como saber cuales ya fueron asignados?
     }
 
     pokemon_sacar_del_mapa(mensaje->nombre, mensaje->posicion);
+    objetivos_descontar_requeridos(mensaje->nombre);
     entrenador->pokemon_buscado = NULL; // es el mismo puntero que el del mapa y ya se libera en la funcion de arriba
+
+    entrenador_verificar_objetivos(entrenador);
+    if (entrenador->estado == BLOCKED_IDLE) {
+        planificador_admitir(entrenador);
+    } else {
+        planificador_verificar_deadlock_exit(entrenador);
+    }
 
     mensaje_liberar_catch_pokemon(mensaje);
     liberar_captura(intento_captura);

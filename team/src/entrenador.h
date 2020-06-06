@@ -14,6 +14,7 @@
 #include "pokemon.h"
 #include "sender.h"
 #include "configuration.h"
+#include "objetivos.h"
 
 sem_t sem_post_ejecucion;
 
@@ -66,5 +67,7 @@ t_list* entrenador_get_bloqueados();
 t_list* entrenador_calcular_pokemon_faltantes(t_entrenador*);
 t_list* entrenador_calcular_pokemon_sobrantes(t_entrenador*);
 bool entrenador_cumplio_objetivos(t_entrenador*);
+bool entrenador_asignado_a(t_pokemon_mapeado*);
+void entrenador_asignar_objetivo(t_entrenador*);
 
 #endif //TEAM_ENTRENADOR_H
