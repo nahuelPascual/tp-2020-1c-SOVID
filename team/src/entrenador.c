@@ -7,7 +7,7 @@
 static t_list* entrenadores;
 static t_dictionary* sem_entrenador; // array con los semaforos para sincronizar a los entrenadores
 
-static int calcular_remaining(t_entrenador*, t_coord*);
+static int calcular_distancia(t_entrenador*, t_coord*);
 static void avanzar(t_entrenador*);
 static void log_entrenador(void*);
 static void log_pokemon(void*);
@@ -17,6 +17,7 @@ static t_list* get_disponibles();
 static t_coord* get_ubicacion_objetivo_actual(t_entrenador*);
 static bool en_camino(t_entrenador*);
 static void realizar_intercambio(t_entrenador*);
+static sem_t* get_semaforo(int id);
 
 static t_info* create_info(){
     t_info* info = malloc(sizeof(t_info));
@@ -68,7 +69,7 @@ t_entrenador* entrenador_get_libre_mas_cercano(t_coord* posicion_buscada) {
     int menor = 10000, entrenador_mas_cercano;
     for (int i=0 ; i<list_size(disponibles) ; i++) {
         t_entrenador* entrenador = list_get(disponibles, i);
-        int actual = calcular_remaining(entrenador, posicion_buscada);
+        int actual = calcular_distancia(entrenador, posicion_buscada);
         if (actual < menor) {
             menor = actual;
             entrenador_mas_cercano = entrenador->id;
@@ -80,17 +81,15 @@ t_entrenador* entrenador_get_libre_mas_cercano(t_coord* posicion_buscada) {
 
 void entrenador_otorgar_ciclos_ejecucion(t_entrenador* entrenador, int cant) {
     for (int i = 0 ; i < cant ; i++) {
-        sem_post((sem_t*)dictionary_get(sem_entrenador, string_itoa(entrenador->id)));
+        sem_post(get_semaforo(entrenador->id));
     }
 }
 
 void entrenador_execute(t_entrenador* e) {
     while(1) {
-        char* id = string_itoa(e->id); // TODO sem_t* get_semaforo(id) para evitar leaks y simplificar codigo
-        sem_t* sem = dictionary_get(sem_entrenador, id);
-        free(id);
+        sem_t* sem = get_semaforo(e->id);
         if (sem_trywait(sem) != 0) { // el semaforo se bloquearia
-            if (e->estado == EXECUTE) {
+            if (e->estado == EXECUTE || e->estado == BLOCKED_WAITING) {
                 sem_post(&sem_post_ejecucion);
             }
             sem_wait(sem);
@@ -107,7 +106,7 @@ void entrenador_execute(t_entrenador* e) {
                 realizar_intercambio(e);
             }
         } else {
-            enviar_catch_pokemon(e->pokemon_buscado);
+            enviar_catch_pokemon(e->id, e->pokemon_buscado);
             e->estado = BLOCKED_WAITING;
         }
     }
@@ -115,14 +114,6 @@ void entrenador_execute(t_entrenador* e) {
 
 t_entrenador* entrenador_get(int id) {
     return list_get(entrenadores, id);
-}
-
-t_list* entrenador_get_execute() {
-    bool _is_execute(void* elem) {
-        t_entrenador* e = (t_entrenador*) elem;
-        return e->estado == EXECUTE;
-    }
-    return list_filter(entrenadores, (void*)_is_execute);
 }
 
 t_list* entrenador_get_all() {
@@ -138,7 +129,7 @@ int entrenador_calcular_remaining(t_entrenador* e) {
         log_error(default_logger, "Calculando remaining para entrenador #%d sin objetivo", e->id);
         return -1;
     }
-    return calcular_remaining(e, get_ubicacion_objetivo_actual(e)); // TODO calcular_distancia y +1(captura) +5(intercambio)
+    return calcular_distancia(e, get_ubicacion_objetivo_actual(e)) + (e->deadlock ? 5 : 1);
 }
 
 static bool entrenador_is_full(t_entrenador* e) {
@@ -151,13 +142,20 @@ void entrenador_verificar_objetivos(t_entrenador* e) {
         return;
     }
 
-//    if (cumplio_objetivo(e)) {
-//        e->estado = EXIT;
-//        //TODO chequear si todos los entrenadores cumplieron objetivo
-//        return;
-//    }
+    if (entrenador_cumplio_objetivos(e)) {
+        e->estado = EXIT;
+    } else {
+        e->estado = BLOCKED_FULL;
+    }
+    sem_post(&sem_post_ejecucion);
+}
 
-    e->estado = BLOCKED_FULL;
+bool entrenador_cumplio_objetivos(t_entrenador* e) {
+    bool _cumple_objetivo(void* item) {
+        t_pokemon_objetivo* obj = (t_pokemon_objetivo*) item;
+        return obj->fue_capturado;
+    }
+    return list_all_satisfy(e->objetivos, (void*)_cumple_objetivo);
 }
 
 static void realizar_intercambio(t_entrenador* entrenador) {
@@ -257,12 +255,16 @@ static t_list* get_disponibles() {
     return list_filter(entrenadores, (void*)_is_disponible);
 }
 
-static int calcular_remaining(t_entrenador* e, t_coord* pos) {
+static int calcular_distancia(t_entrenador* e, t_coord* pos) {
     return (int) fabs((double)pos->x - (double)e->posicion->x) + fabs((double)pos->y - (double)e->posicion->y);
 }
 
 static t_coord* get_ubicacion_objetivo_actual(t_entrenador* e) {
     return e->deadlock ? e->intercambio->ubicacion : e->pokemon_buscado->ubicacion;
+}
+
+static bool en_camino(t_entrenador* e) {
+    return calcular_distancia(e, get_ubicacion_objetivo_actual(e)) > 0;
 }
 
 void log_entrenadores(t_list* entrenadores){
@@ -290,7 +292,9 @@ static void log_objetivo(void* elemento){
     log_debug(default_logger, "                         -%s (%s)", pokemon->nombre, pokemon->fue_capturado ? "CAPTURADO" : "BUSCADO");
 }
 
-static bool en_camino(t_entrenador* e) {
-    int remaining = entrenador_calcular_remaining(e);
-    return e->deadlock ? remaining > 5 : remaining > 1;
+static sem_t* get_semaforo(int id) {
+    char* key = string_itoa(id);
+    sem_t* sem = dictionary_get(sem_entrenador, key);
+    free(key);
+    return sem;
 }

@@ -22,6 +22,7 @@ typedef struct {
     char* algoritmo_planificacion;
     int quantum;
     int estimacion_inicial;
+    float alpha;
     char* ip_broker;
     char* puerto_broker;
     char* ip_team;

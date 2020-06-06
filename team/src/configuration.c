@@ -36,6 +36,7 @@ void config_team_init() {
     config_team->algoritmo_planificacion = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
     config_team->quantum = config_get_int_value(config, "QUANTUM");
     config_team->estimacion_inicial = config_get_int_value(config, "ESTIMACION_INICIAL");
+    config_team->alpha = config_get_double_value(config, "ALPHA");
     config_team->ip_broker = config_get_string_value(config, "IP_BROKER");
     config_team->puerto_broker = config_get_string_value(config, "PUERTO_BROKER");
     config_team->ip_team = config_get_string_value(config, "IP_TEAM");
@@ -44,7 +45,7 @@ void config_team_init() {
 
     logger = iniciar_team_logger(config_team->log_file);
 
-    log_config_team(config_team); // logeo la config
+    log_config_team(config_team);
 }
 
 static void leer_config() {

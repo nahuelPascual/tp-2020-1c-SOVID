@@ -14,8 +14,6 @@
 #include "entrenador.h"
 #include "configuration.h"
 
-pthread_mutex_t mx_cola_ready;
-
 void planificador_init();
 void planificador_encolar_ready(t_entrenador* e);
 

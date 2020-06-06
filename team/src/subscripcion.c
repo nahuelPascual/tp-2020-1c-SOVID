@@ -8,7 +8,7 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion);
 static void procesar_appeared_pokemon(t_appeared_pokemon* appeared_pokemon);
 static void procesar_localized_pokemon(t_localized_pokemon* localized_pokemon);
 static void procesar_caught_pokemon(t_paquete* paquete);
-static void escuchar_a(int con);
+static void escuchar_a(int cliente);
 
 void escuchar_gameboy() {
     int server = ipc_escuchar_en(config_team->ip_team, config_team->puerto_team);
@@ -28,19 +28,22 @@ void suscribirse_a(t_tipo_mensaje tipo_mensaje) {
 static void procesar_appeared_pokemon(t_appeared_pokemon* appeared_pokemon) {
     log_debug(default_logger, "Recibido APPEARED_POKEMON (%s)", appeared_pokemon->nombre);
     procesar_appeared_pokemon_(appeared_pokemon->nombre, appeared_pokemon->posicion);
+    mensaje_liberar_appeared_pokemon(appeared_pokemon);
 }
 
 static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
-    string_to_upper(nombre);
     if (!is_pokemon_requerido(nombre)){
         return;
     }
-    pokemon_agregar_al_mapa(nombre, 1, posicion);
+
+    t_pokemon_mapeado* objetivo = pokemon_agregar_al_mapa(nombre, 1, posicion);
 
     t_entrenador* entrenador = entrenador_get_libre_mas_cercano(posicion);
     if (entrenador == NULL) {
         return;
     }
+
+    entrenador->pokemon_buscado = objetivo;
     planificador_encolar_ready(entrenador);
 }
 
@@ -49,10 +52,13 @@ static void procesar_localized_pokemon(t_localized_pokemon* localized_pokemon) {
     if (is_pokemon_conocido(localized_pokemon->nombre)) {
         return;
     }
+
     for (int i=0 ; i<list_size(localized_pokemon->posiciones) ; i++) {
         t_coord* posicion = (t_coord*) list_get(localized_pokemon->posiciones, i);
         procesar_appeared_pokemon_(localized_pokemon->nombre, posicion);
     }
+
+    mensaje_liberar_localized_pokemon(localized_pokemon);
 }
 
 static void procesar_caught_pokemon(t_paquete* paquete) {
@@ -65,24 +71,27 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
 
     t_caught_pokemon* caught_pokemon = paquete_to_caught_pokemon(paquete);
     t_entrenador* entrenador = entrenador_get(intento_captura->id_entrenador);
+    t_catch_pokemon* mensaje = intento_captura->mensaje_enviado;
 
     if (caught_pokemon->is_caught){
-        t_catch_pokemon* mensaje = intento_captura->mensaje_enviado;
-        list_add(entrenador->capturados, mensaje->nombre);
-        pokemon_sacar_del_mapa(mensaje->nombre, mensaje->posicion);
+        list_add(entrenador->capturados, string_duplicate(mensaje->nombre));
         entrenador_verificar_objetivos(entrenador);
     } else {
         entrenador->estado = BLOCKED_IDLE; // TODO deberia buscarle un pokemon del mapa? como saber cuales ya fueron asignados?
     }
 
-    //TODO liberar intento_captura
+    pokemon_sacar_del_mapa(mensaje->nombre, mensaje->posicion);
+    entrenador->pokemon_buscado = NULL; // es el mismo puntero que el del mapa y ya se libera en la funcion de arriba
+
+    mensaje_liberar_catch_pokemon(mensaje);
+    liberar_captura(intento_captura);
     mensaje_liberar_caught_pokemon(caught_pokemon);
     paquete_liberar(paquete);
 }
 
-static void escuchar_a(int con) {
-    while(ipc_hay_datos_para_recibir_de(con)){
-        t_paquete* paquete = ipc_recibir_de(con);
+static void escuchar_a(int cliente) {
+    while(ipc_hay_datos_para_recibir_de(cliente)){
+        t_paquete* paquete = ipc_recibir_de(cliente);
 
         pthread_t thread;
         switch(paquete->header->tipo_mensaje) {
@@ -103,6 +112,7 @@ static void escuchar_a(int con) {
             continue;
         }
 
-        enviar_ack(paquete->header->id_mensaje);
+        enviar_ack(paquete->header->id_mensaje, cliente);
+        paquete_liberar(paquete);
     }
 }

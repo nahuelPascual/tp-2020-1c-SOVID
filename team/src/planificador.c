@@ -23,15 +23,12 @@ static t_entrenador* elegir_entrenador();
 static bool es_SJF();
 static t_entrenador* detectar_deadlock(t_entrenador*);
 static void verificar_deadlock_exit(t_entrenador*);
-// static t_entrenador* pop(t_queue*); TODO sincronizar queue
 
 void planificador_init() {
     sem_init(&sem_entrenadores_planificables, 0, 0);
     algoritmo = normalizar_algoritmo_planificacion(config_team->algoritmo_planificacion);
     cola_ready = queue_create();
-//    pthread_mutex_init(&mx_cola_ready, NULL);
-//    alpha = config_team->alpha;
-    alpha = 0.5; //TODO levantar de config
+    alpha = config_team->alpha;
     planificar();
 }
 
@@ -94,18 +91,8 @@ void planificador_encolar_ready(t_entrenador* e) {
 }
 
 static void verificar_deadlock_exit(t_entrenador* e) {
-    if (e->estado == EXIT) {
-        bool _cumple_objetivos(void* item) {
-            t_entrenador* entrenador = (t_entrenador*) item;
-            bool _check(void* _item) {
-                t_pokemon_objetivo* objetivo = (t_pokemon_objetivo*) _item;
-                return objetivo->fue_capturado;
-            }
-            return list_all_satisfy(entrenador->objetivos, (void*)_check);
-        }
-        if (list_all_satisfy(entrenador_get_all(), (void*)_cumple_objetivos)) {
-            // TODO cerrar proceso por objetivo global cumplido
-        }
+    if (e->estado == EXIT && list_all_satisfy(entrenador_get_all(), (void*)entrenador_cumplio_objetivos)) {
+        // TODO cerrar proceso por objetivo global cumplido
     }
 
     t_entrenador* otro_entrenador = NULL;

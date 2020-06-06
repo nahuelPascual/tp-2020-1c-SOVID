@@ -30,7 +30,7 @@ typedef struct {
 } t_pokemon_capturado;
 
 void init_pokemon_map();
-void pokemon_agregar_al_mapa(char* nombre, int cantidad, t_coord* posicion);
+t_pokemon_mapeado* pokemon_agregar_al_mapa(char* nombre, int cantidad, t_coord* posicion);
 void pokemon_sacar_del_mapa(char* nombre, t_coord* posicion);
 void pokemon_liberar_mapa();
 bool is_pokemon_conocido(char* nombre);

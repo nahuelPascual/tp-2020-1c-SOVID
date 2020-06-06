@@ -57,7 +57,6 @@ void entrenador_init_list(t_list* entrenadores);
 void entrenador_execute(t_entrenador*);
 void entrenador_otorgar_ciclos_ejecucion(t_entrenador* entrenador, int cant);
 t_entrenador* entrenador_get(int id);
-t_list* entrenador_get_execute();
 t_list* entrenador_get_all();
 int entrenador_get_count();
 int entrenador_calcular_remaining(t_entrenador*);
@@ -66,5 +65,6 @@ void entrenador_verificar_objetivos(t_entrenador*);
 t_list* entrenador_get_bloqueados();
 t_list* entrenador_calcular_pokemon_faltantes(t_entrenador*);
 t_list* entrenador_calcular_pokemon_sobrantes(t_entrenador*);
+bool entrenador_cumplio_objetivos(t_entrenador*);
 
 #endif //TEAM_ENTRENADOR_H
