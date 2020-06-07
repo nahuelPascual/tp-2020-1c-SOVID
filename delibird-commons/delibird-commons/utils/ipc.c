@@ -51,30 +51,35 @@ bool ipc_hay_datos_para_recibir_de(int socket) {
 }
 
 t_paquete* ipc_recibir_de(int socket) {
+    int received_bytes = 0;
     t_paquete* paquete = malloc(sizeof(t_paquete));
     t_header* header = malloc(sizeof(t_header));
 
-    recv(socket, header, sizeof(t_header), MSG_WAITALL);
+    received_bytes += recv(socket, header, sizeof(t_header), MSG_WAITALL);
     paquete->payload = malloc(header->payload_size);
 
-    recv(socket, paquete->payload, header->payload_size, MSG_WAITALL);
+    received_bytes += recv(socket, paquete->payload, header->payload_size, MSG_WAITALL);
     paquete->header = header;
 
-    return paquete;
+    int bytes = sizeof(t_header) + header->payload_size;
+
+    return received_bytes == bytes ? paquete : (paquete_liberar(paquete), NULL);
 }
 
-void ipc_enviar_a(int socket, t_paquete* paquete) {
-    int size = paquete->header->payload_size + sizeof(t_header);
-    void* stream = malloc(size);
+bool ipc_enviar_a(int socket, t_paquete* paquete) {
+    int bytes = paquete->header->payload_size + sizeof(t_header);
+    void* stream = malloc(bytes);
     int offset = 0;
 
     memcpy(stream + offset, paquete->header, sizeof(t_header));
     offset += sizeof(t_header);
     memcpy(stream + offset, paquete->payload, paquete->header->payload_size);
 
-    send(socket, stream, size, 0);
+    int transmitted_bytes = send(socket, stream, bytes, 0);
 
     free(stream);
+
+    return transmitted_bytes == bytes;
 }
 
 int ipc_conectarse_a(char *ip, char* puerto) {
