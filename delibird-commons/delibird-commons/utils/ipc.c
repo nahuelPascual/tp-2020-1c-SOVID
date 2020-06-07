@@ -75,7 +75,7 @@ bool ipc_enviar_a(int socket, t_paquete* paquete) {
     offset += sizeof(t_header);
     memcpy(stream + offset, paquete->payload, paquete->header->payload_size);
 
-    int transmitted_bytes = send(socket, stream, bytes, 0);
+    int transmitted_bytes = send(socket, stream, bytes, MSG_NOSIGNAL);
 
     free(stream);
 
