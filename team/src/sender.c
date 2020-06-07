@@ -4,12 +4,13 @@
 
 #include "sender.h"
 
-static t_list* capturas_pendientes;
+static t_list* mensajes_esperando_respuesta;
+
 static int enviar_broker(t_paquete* p);
 static int esperar_id(int broker);
 
-void sender_init_capturas_pendientes() {
-    capturas_pendientes = list_create();
+void sender_init_mensajes_esperando_respuesta() {
+    mensajes_esperando_respuesta = list_create();
 }
 
 int enviar_suscripcion(t_tipo_mensaje tipo_mensaje) {
@@ -30,10 +31,14 @@ void enviar_get_pokemon(char* pokemon, void* cantidad) {
 	t_paquete* paquete = paquete_from_get_pokemon(mensaje);
 
 	int broker = enviar_broker(paquete);
-    esperar_id(broker);
+    int id = esperar_id(broker);
     ipc_cerrar(broker);
 
-	mensaje_liberar_get_pokemon(mensaje);
+    t_mensaje_enviado* pokemon_pedido = malloc(sizeof(t_mensaje_enviado));
+    pokemon_pedido->id_mensaje = id;
+    pokemon_pedido->mensaje_enviado = mensaje;
+    list_add(mensajes_esperando_respuesta, pokemon_pedido);
+
 	paquete_liberar(paquete);
 }
 
@@ -45,11 +50,11 @@ void enviar_catch_pokemon(int id_entrenador, t_pokemon_mapeado* pokemon) {
     int id = esperar_id(broker);
     ipc_cerrar(broker);
 
-    t_captura* intento_captura = malloc(sizeof(t_captura));
+    t_mensaje_enviado* intento_captura = malloc(sizeof(t_mensaje_enviado));
     intento_captura->id_entrenador = id_entrenador;
     intento_captura->id_mensaje = id;
     intento_captura->mensaje_enviado = mensaje;
-    list_add(capturas_pendientes, intento_captura);
+    list_add(mensajes_esperando_respuesta, intento_captura);
 
     paquete_liberar(paquete);
 }
@@ -64,17 +69,20 @@ void enviar_ack(uint32_t id_mensaje, int socket) {
     paquete_liberar(paquete);
 }
 
-t_captura* get_mensaje_enviado(int id_mensaje) {
-    for (int i=0 ; i>list_size(capturas_pendientes) ; i++) {
-        t_captura* captura = list_get(capturas_pendientes, i);
-        if (captura->id_mensaje == id_mensaje) {
-            return (t_captura*) list_remove(capturas_pendientes, i);
-        }
+t_mensaje_enviado* get_mensaje_enviado(int id_mensaje) {
+    bool _is_mensaje(void* msg) {
+        t_mensaje_enviado* mensaje = (t_mensaje_enviado*) msg;
+        return mensaje->id_mensaje == id_mensaje;
     }
-    return NULL;
+    return list_remove_by_condition(mensajes_esperando_respuesta, (void*)_is_mensaje);
 }
 
-void liberar_captura(t_captura* c) {
+void liberar_get_pokemon_enviado(t_mensaje_enviado* c) {
+    mensaje_liberar_get_pokemon(c->mensaje_enviado);
+    free(c);
+}
+
+void liberar_catch_pokemon_enviado(t_mensaje_enviado* c) {
     mensaje_liberar_catch_pokemon(c->mensaje_enviado);
     free(c);
 }

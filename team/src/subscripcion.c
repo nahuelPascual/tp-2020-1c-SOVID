@@ -6,10 +6,10 @@
 
 extern t_log* default_logger;
 
-static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion);
-static void procesar_appeared_pokemon(t_appeared_pokemon* appeared_pokemon);
-static void procesar_localized_pokemon(t_localized_pokemon* localized_pokemon);
-static void procesar_caught_pokemon(t_paquete* paquete);
+static void procesar_appeared_pokemon_(char*, t_coord*);
+static void procesar_appeared_pokemon(t_appeared_pokemon*);
+static void procesar_localized_pokemon(t_paquete*);
+static void procesar_caught_pokemon(t_paquete*);
 static void escuchar_a(int cliente);
 
 void escuchar_gameboy() {
@@ -56,9 +56,21 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
     planificador_encolar_ready(entrenador);
 }
 
-static void procesar_localized_pokemon(t_localized_pokemon* localized_pokemon) {
+static void procesar_localized_pokemon(t_paquete* paquete) {
+    t_localized_pokemon* localized_pokemon = paquete_to_localized_pokemon(paquete);
     log_debug(default_logger, "Recibido LOCALIZED_POKEMON (%s)", localized_pokemon->nombre);
+
+    t_mensaje_enviado* pokemon_pedido = get_mensaje_enviado(paquete->header->correlation_id_mensaje);
+    if (pokemon_pedido == NULL) {
+        log_debug(default_logger, "Se ignora el mensaje por no corresponder a este team");
+        mensaje_liberar_localized_pokemon(localized_pokemon);
+        return;
+    }
+
     if (is_pokemon_conocido(localized_pokemon->nombre)) {
+        log_debug(default_logger, "Se ignora el mensaje porque ya se recibio un localized_pokemon o appeared_pokemon para %s", localized_pokemon->nombre);
+        mensaje_liberar_localized_pokemon(localized_pokemon);
+        liberar_get_pokemon_enviado(pokemon_pedido);
         return;
     }
 
@@ -68,11 +80,12 @@ static void procesar_localized_pokemon(t_localized_pokemon* localized_pokemon) {
     }
 
     mensaje_liberar_localized_pokemon(localized_pokemon);
+    liberar_get_pokemon_enviado(pokemon_pedido);
 }
 
 static void procesar_caught_pokemon(t_paquete* paquete) {
     log_debug(default_logger, "Recibido CAUGHT_POKEMON (id_catch_pokemon: %d)", paquete->header->correlation_id_mensaje);
-    t_captura* intento_captura = get_mensaje_enviado(paquete->header->correlation_id_mensaje);
+    t_mensaje_enviado* intento_captura = get_mensaje_enviado(paquete->header->correlation_id_mensaje);
     if (intento_captura == NULL) {
         log_debug(default_logger, "Se ignora el mensaje por no corresponder a este team");
         return;
@@ -98,10 +111,8 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
         planificador_verificar_deadlock_exit(entrenador);
     }
 
-    mensaje_liberar_catch_pokemon(mensaje);
-    liberar_captura(intento_captura);
+    liberar_catch_pokemon_enviado(intento_captura);
     mensaje_liberar_caught_pokemon(caught_pokemon);
-    paquete_liberar(paquete);
 }
 
 static void escuchar_a(int cliente) {
@@ -111,7 +122,7 @@ static void escuchar_a(int cliente) {
         pthread_t thread;
         switch(paquete->header->tipo_mensaje) {
         case LOCALIZED_POKEMON:
-            pthread_create(&thread, NULL, (void*)procesar_localized_pokemon, paquete_to_localized_pokemon(paquete));
+            pthread_create(&thread, NULL, (void*)procesar_localized_pokemon, paquete);
             pthread_detach(thread);
             break;
         case APPEARED_POKEMON:

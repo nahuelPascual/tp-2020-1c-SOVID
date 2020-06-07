@@ -19,7 +19,7 @@ t_dictionary* calcular_objetivos_globales(t_list* entrenadores){
     mapa_objetivos = dictionary_create();
     atrapados = dictionary_create();
     list_iterate(entrenadores, &actualizar_objetivos_globales);
-    sender_init_capturas_pendientes();
+    sender_init_mensajes_esperando_respuesta();
 
     log_objetivos_globales(mapa_objetivos); //debug logging
 
