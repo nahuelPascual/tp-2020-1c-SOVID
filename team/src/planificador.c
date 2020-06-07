@@ -4,6 +4,8 @@
 
 #include "planificador.h"
 
+extern t_log* default_logger;
+
 const int COSTO_INTERCAMBIO = 5;
 
 static enum {FIFO, ROUND_ROBIN, SJF, SJF_CON_DESALOJO};
@@ -99,11 +101,14 @@ void planificador_encolar_ready(t_entrenador* e) {
 
 void planificador_verificar_deadlock_exit(t_entrenador* e) {
     if (e->estado == EXIT && list_all_satisfy(entrenador_get_all(), (void*)entrenador_cumplio_objetivos)) {
+        log_debug(default_logger, "Todos los objetivos del team fueron cumplidos!");
         // TODO cerrar proceso por objetivo global cumplido
     }
 
     t_entrenador* otro_entrenador = NULL;
     if (e->estado == BLOCKED_FULL && (otro_entrenador = detectar_deadlock(e)) != NULL) {
+        log_debug(default_logger, "Se planifica al entrenador #%d hacia la posicion (%d, %d) para resolver DEADLOCK con entrenador #%d",
+                e->id, otro_entrenador->posicion->x, otro_entrenador->posicion->y, otro_entrenador->id);
         e->deadlock = otro_entrenador->deadlock = true;
         e->info->deadlocks++;
         otro_entrenador->info->deadlocks++;
@@ -113,7 +118,12 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
 
 void planificador_admitir(t_entrenador* e) {
     entrenador_asignar_objetivo(e);
-    if(e->pokemon_buscado != NULL) planificador_encolar_ready(e);
+    if(e->pokemon_buscado != NULL) {
+        log_debug(default_logger, "No se replanifica al entrenador #%d porque no hay mas objetivos disponibles", e->id);
+        planificador_encolar_ready(e);
+    }
+    log_debug(default_logger, "Se replanifico al entrenador #%d para capturar un %d en la posicion (%d, %d)",
+            e->id, e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion->x, e->pokemon_buscado->ubicacion->y);
 }
 
 static t_entrenador* detectar_deadlock(t_entrenador* entrenador) {

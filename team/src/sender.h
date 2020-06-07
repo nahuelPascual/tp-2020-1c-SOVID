@@ -21,6 +21,7 @@ typedef struct {
     t_catch_pokemon* mensaje_enviado;
 } t_captura;
 
+void sender_init_capturas_pendientes();
 int enviar_suscripcion(t_tipo_mensaje tipo_mensaje);
 void enviar_get_pokemon(char* pokemon, void* cantidad);
 void enviar_catch_pokemon(int id_entrenador, t_pokemon_mapeado* pokemon);

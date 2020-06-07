@@ -7,6 +7,9 @@
 
 #include "configuration.h"
 
+extern t_log* default_logger;
+extern t_log* logger;
+
 static char* const default_logger_path = "default.log";
 static char* const config_path = "team.config";
 static t_config* config;

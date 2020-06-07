@@ -4,7 +4,9 @@
 
 #include "pokemon.h"
 
-t_dictionary* pokemon_localizados;
+extern t_log* default_logger;
+
+static t_dictionary* pokemon_localizados;
 
 static t_pokemon_mapeado* new_pokemon(char* nombre, int cantidad, t_coord* posicion);
 static void liberar_lista_mapeada(void*);
@@ -19,8 +21,23 @@ static t_pokemon_mapeado* new_pokemon(char* nombre, int cantidad, t_coord* posic
     t_pokemon_mapeado* this_pokemon = malloc(sizeof(t_pokemon_mapeado));
     this_pokemon->pokemon = string_duplicate(nombre);
     this_pokemon->cantidad = cantidad;
+    this_pokemon->ubicacion = malloc(sizeof(t_coord));
     memcpy(this_pokemon->ubicacion, posicion, sizeof(t_coord));
     return this_pokemon;
+}
+
+t_list* pokemon_filtrar_especies_encontradas(t_list* lista) {
+    t_list* especies = list_create();
+    void _get_especie(char* k, void* v) {
+        void* objetivo = list_get(lista, k);
+        if (objetivo) list_add(especies, k);
+    }
+    dictionary_iterator(pokemon_localizados, (void*)_get_especie);
+    return especies;
+}
+
+t_list* pokemon_get(char* especie) {
+    return (t_list*) dictionary_get(pokemon_localizados, especie);
 }
 
 t_pokemon_mapeado* pokemon_agregar_al_mapa(char* nombre, int cantidad, t_coord* posicion) {
@@ -28,7 +45,8 @@ t_pokemon_mapeado* pokemon_agregar_al_mapa(char* nombre, int cantidad, t_coord* 
     if (!is_pokemon_conocido(nombre)) {
         t_list* list = list_create();
         list_add(list, this_pokemon);
-        dictionary_put(pokemon_localizados, string_duplicate(nombre), list); // vuelvo a duplicar para no usar como key el string de ningun item de la lista
+        dictionary_put(pokemon_localizados, nombre, list);
+        log_debug(default_logger, "Se agrego un nuevo pokemon (%s) al mapa en la posicion (%d, %d)", nombre, posicion->x, posicion->y);
     } else {
         add_pokemon_existente(this_pokemon);
     }
@@ -85,4 +103,6 @@ static void add_pokemon_existente(t_pokemon_mapeado* this_pokemon) {
     if (!found) {
         list_add(l, this_pokemon);
     }
+    log_debug(default_logger, "Se agrego un %s en (%d, %d). Ahora hay un total de %d en esa posicion",
+            this_pokemon->pokemon, this_pokemon->ubicacion->x, this_pokemon->ubicacion->y, this_pokemon->cantidad);
 }

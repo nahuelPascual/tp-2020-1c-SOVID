@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <commons/collections/dictionary.h>
+#include <commons/log.h>
 #include "subscripcion.h"
 #include "sender.h"
 #include "pokemon.h"
@@ -16,6 +17,9 @@
 #include "objetivos.h"
 #include "entrenador.h"
 #include "planificador.h"
+
+t_log* logger;
+t_log* default_logger;
 
 void crear_hilos_entrenador();
 void crear_hilos_suscriptor();
@@ -25,11 +29,11 @@ int main(int argc, char **argv) {
     config_team_init();
     t_dictionary* objetivos_globales = calcular_objetivos_globales(entrenador_get_all());
 
-    crear_hilos_suscriptor();
-    crear_gameboy_listener();
-
     init_pokemon_map();
     crear_hilos_entrenador();
+
+    crear_hilos_suscriptor();
+    crear_gameboy_listener();
 
     // se envia un get_pokemon por cada especie de pokemon requerida
     dictionary_iterator(objetivos_globales, (void*)enviar_get_pokemon);
@@ -45,6 +49,7 @@ int main(int argc, char **argv) {
 
 void crear_hilos_entrenador() {
     pthread_t hilos[entrenador_get_count()];
+    log_debug(default_logger, "Creando %d hilos entrenador", entrenador_get_count());
     void _crear_hilo(void* e) {
         t_entrenador* entrenador = (t_entrenador*) e;
         pthread_create(&hilos[entrenador->id], NULL, (void*)entrenador_execute, entrenador);
@@ -61,6 +66,7 @@ void crear_hilos_suscriptor() {
 
 void crear_gameboy_listener() {
     pthread_t gameboyListener;
+    log_debug(default_logger, "Abriendo conexion para escuchar al gameboy");
     pthread_create(&gameboyListener, NULL, (void*)escuchar_gameboy, NULL);
     pthread_detach(gameboyListener);
 }

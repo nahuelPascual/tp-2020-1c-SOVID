@@ -4,9 +4,13 @@
 
 #include "sender.h"
 
-t_list* capturas_pendientes;
+static t_list* capturas_pendientes;
 static int enviar_broker(t_paquete* p);
 static int esperar_id(int broker);
+
+void sender_init_capturas_pendientes() {
+    capturas_pendientes = list_create();
+}
 
 int enviar_suscripcion(t_tipo_mensaje tipo_mensaje) {
     t_suscripcion* s = suscripcion_crear(tipo_mensaje, 0);

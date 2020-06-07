@@ -4,6 +4,8 @@
 
 #include "subscripcion.h"
 
+extern t_log* default_logger;
+
 static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion);
 static void procesar_appeared_pokemon(t_appeared_pokemon* appeared_pokemon);
 static void procesar_localized_pokemon(t_localized_pokemon* localized_pokemon);
@@ -33,15 +35,22 @@ static void procesar_appeared_pokemon(t_appeared_pokemon* appeared_pokemon) {
 
 static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
     if (!is_pokemon_requerido(nombre)){
+        log_debug(default_logger, "Se ignora %s porque no es un pokemon requerido", nombre);
         return;
     }
 
     t_pokemon_mapeado* objetivo = pokemon_agregar_al_mapa(nombre, 1, posicion);
 
-    if (entrenador_asignado_a(objetivo)) return;
+    if (entrenador_asignado_a(objetivo)) {
+        log_debug(default_logger, "No se planifica %s porque ya hay una captura en proceso para esa especie", nombre);
+        return;
+    }
 
     t_entrenador* entrenador = entrenador_get_libre_mas_cercano(posicion);
-    if (entrenador == NULL) return;
+    if (entrenador == NULL) {
+        log_debug(default_logger, "No hay ningun entrenador libre para planificar hacia (%d, %d)", posicion->x, posicion->y);
+        return;
+    }
 
     entrenador->pokemon_buscado = objetivo;
     planificador_encolar_ready(entrenador);
@@ -65,7 +74,7 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
     log_debug(default_logger, "Recibido CAUGHT_POKEMON (id_catch_pokemon: %d)", paquete->header->correlation_id_mensaje);
     t_captura* intento_captura = get_mensaje_enviado(paquete->header->correlation_id_mensaje);
     if (intento_captura == NULL) {
-        paquete_liberar(paquete);
+        log_debug(default_logger, "Se ignora el mensaje por no corresponder a este team");
         return;
     }
 
@@ -75,6 +84,7 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
 
     if (caught_pokemon->is_caught){
         list_add(entrenador->capturados, string_duplicate(mensaje->nombre));
+        log_debug(default_logger, "El entrenador #%d capturo un %s", mensaje->nombre);
     }
 
     pokemon_sacar_del_mapa(mensaje->nombre, mensaje->posicion);

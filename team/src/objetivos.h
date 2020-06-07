@@ -9,7 +9,7 @@
 #define UTILS_OBJETIVOS_H_
 
 #include <commons/collections/list.h>
-#include "configuration.h"
+#include "sender.h"
 
 t_dictionary* calcular_objetivos_globales(t_list* entrenadores);
 bool is_pokemon_requerido(char* nombre);

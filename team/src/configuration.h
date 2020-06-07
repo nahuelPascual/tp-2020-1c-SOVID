@@ -30,8 +30,6 @@ typedef struct {
     char* log_file;
 } t_config_team;
 
-t_log* logger;
-t_log* default_logger;
 t_config_team* config_team;
 
 void config_team_init();
