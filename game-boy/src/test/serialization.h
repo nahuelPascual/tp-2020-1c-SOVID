@@ -7,6 +7,9 @@
 
 #include <commons/collections/list.h>
 #include <delibird-commons/utils/ipc.h>
+#include <delibird-commons/utils/logger.h>
+
+void iniciar_tests();
 
 void test_new_pokemon(int conn);
 void test_localized_pokemon(int conn);
@@ -17,6 +20,6 @@ void test_caught_pokemon(int conn);
 void test_ack(int conn);
 void test_suscripcion(int conn);
 void test_informe_id(int conn);
-void test_serializarEnviarTodos(char* ip, char* puerto);
+void test_serializarEnviarTodos(char* proceso, char* ip, char* puerto);
 
 #endif //SERIALIZATION_H
