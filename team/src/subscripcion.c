@@ -96,13 +96,13 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
     t_catch_pokemon* mensaje = intento_captura->mensaje_enviado;
 
     if (caught_pokemon->is_caught){
-        list_add(entrenador->capturados, string_duplicate(mensaje->nombre));
+        entrenador_concretar_captura(entrenador, mensaje->nombre, mensaje->posicion);
         log_debug(default_logger, "El entrenador #%d capturo un %s", mensaje->nombre);
+    } else {
+        pokemon_sacar_del_mapa(mensaje->nombre, mensaje->posicion);
+        entrenador->pokemon_buscado = NULL; // es el mismo puntero que el del mapa y ya se libera en la funcion de arriba
+        log_debug(default_logger, "El entrenador #%d no pudo capturar a %s", mensaje->nombre);
     }
-
-    pokemon_sacar_del_mapa(mensaje->nombre, mensaje->posicion);
-    objetivos_descontar_requeridos(mensaje->nombre);
-    entrenador->pokemon_buscado = NULL; // es el mismo puntero que el del mapa y ya se libera en la funcion de arriba
 
     entrenador_verificar_objetivos(entrenador);
     if (entrenador->estado == BLOCKED_IDLE) {

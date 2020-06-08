@@ -99,10 +99,10 @@ void entrenador_execute(t_entrenador* e) {
             sem_wait(list_get(sem_entrenadores, e->id));
         }
 
-        e->info->ciclos_cpu_ejecutados++;
+        log_debug(default_logger, "Ejecutando entrenador #%d", e->id);
         e->estado = EXECUTE;
         sleep(config_team->retardo_ciclo_cpu);
-        log_debug(default_logger, "Ejecutando entrenador #%d", e->id);
+        e->info->ciclos_cpu_ejecutados++;
 
         if (en_camino(e)) {
             avanzar(e);
@@ -114,10 +114,22 @@ void entrenador_execute(t_entrenador* e) {
         } else {
             e->estado = BLOCKED_WAITING;
             log_debug(default_logger, "Entrenador #%d paso a estado BLOCKED_WAITING", e->id);
-            enviar_catch_pokemon(e->id, e->pokemon_buscado);
+            bool enviado = enviar_catch_pokemon(e->id, e->pokemon_buscado);
+            if (!enviado) {
+                log_debug(default_logger, "Entrenador #%d capturo automaticamente a %s", e->id, e->pokemon_buscado->pokemon);
+                entrenador_concretar_captura(e, e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion);
+                entrenador_verificar_objetivos(e);
+            }
             while (queda_quantum(e->id)); // consumir quantum restante
         }
     }
+}
+
+void entrenador_concretar_captura(t_entrenador* e, char* pokemon, t_coord* ubicacion) {
+    list_add(e->capturados, string_duplicate(e->pokemon_buscado->pokemon));
+    objetivos_descontar_requeridos(e->pokemon_buscado->pokemon);
+    pokemon_sacar_del_mapa(e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion);
+    e->pokemon_buscado = NULL; // es el mismo puntero que el del mapa y ya se libera en la funcion de arriba
 }
 
 t_entrenador* entrenador_get(int id) {

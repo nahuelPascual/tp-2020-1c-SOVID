@@ -69,5 +69,6 @@ t_list* entrenador_calcular_pokemon_sobrantes(t_entrenador*);
 bool entrenador_cumplio_objetivos(t_entrenador*);
 bool entrenador_asignado_a(t_pokemon_mapeado*);
 void entrenador_asignar_objetivo(t_entrenador*);
+void entrenador_concretar_captura(t_entrenador* e, char* pokemon, t_coord* ubicacion);
 
 #endif //TEAM_ENTRENADOR_H
