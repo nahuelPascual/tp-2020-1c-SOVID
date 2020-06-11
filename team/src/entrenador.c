@@ -99,7 +99,6 @@ void entrenador_execute(t_entrenador* e) {
             sem_wait(list_get(sem_entrenadores, e->id));
         }
 
-        log_debug(default_logger, "Ejecutando entrenador #%d", e->id);
         e->estado = EXECUTE;
         sleep(config_team->retardo_ciclo_cpu);
         e->info->ciclos_cpu_ejecutados++;
@@ -126,7 +125,20 @@ void entrenador_execute(t_entrenador* e) {
 }
 
 void entrenador_concretar_captura(t_entrenador* e, char* pokemon, t_coord* ubicacion) {
-    list_add(e->capturados, string_duplicate(e->pokemon_buscado->pokemon));
+    bool _find(void* obj) {
+        t_pokemon_objetivo* objetivo = (t_pokemon_objetivo*) obj;
+        return !objetivo->fue_capturado && string_equals_ignore_case(objetivo->nombre, pokemon);
+    }
+    t_pokemon_objetivo* objetivo = list_find(e->objetivos, (void*)_find);
+    if (objetivo) {
+        objetivo->fue_capturado = true;
+    }
+
+    t_pokemon_capturado* captura = malloc(sizeof(t_pokemon_capturado));
+    captura->nombre = string_duplicate(e->pokemon_buscado->pokemon);
+    captura->es_objetivo = objetivo != NULL;
+    list_add(e->capturados, captura);
+
     objetivos_descontar_requeridos(e->pokemon_buscado->pokemon);
     pokemon_sacar_del_mapa(e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion);
     e->pokemon_buscado = NULL; // es el mismo puntero que el del mapa y ya se libera en la funcion de arriba
@@ -189,7 +201,8 @@ bool entrenador_cumplio_objetivos(t_entrenador* e) {
 }
 
 void entrenador_asignar_objetivo(t_entrenador* e) {
-    t_list* objetivos_pendientes = pokemon_filtrar_especies_encontradas(objetivos_get_especies());
+    t_list* objetivos = objetivos_get_especies();
+    t_list* objetivos_localizados = pokemon_filtrar_especies_encontradas(objetivos);
 
     bool _es_asignable(void* especie) {
         char* pokemon = (char*) especie;
@@ -199,11 +212,15 @@ void entrenador_asignar_objetivo(t_entrenador* e) {
         }
         return !list_any_satisfy(entrenadores, (void*)_persigue_a);
     }
-    objetivos_pendientes = list_filter(objetivos_pendientes, (void*)_es_asignable);
+    t_list* objetivos_asignables = list_filter(objetivos_localizados, (void*)_es_asignable);
 
-    if (list_size(objetivos_pendientes) == 0) return; // no hay en el mapa ninguno de los objetivos del entrenador
+    if (list_size(objetivos_asignables) > 0) {
+        e->pokemon_buscado = encontrar_pokemon_cercano(e, objetivos_asignables);
+    }
 
-    e->pokemon_buscado = encontrar_pokemon_cercano(e, objetivos_pendientes);
+    free(objetivos);
+    free(objetivos_localizados);
+    free(objetivos_asignables);
 }
 
 static t_pokemon_mapeado* encontrar_pokemon_cercano(t_entrenador* e, t_list* pokemons) {

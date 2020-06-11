@@ -29,11 +29,6 @@ void config_team_init() {
     config_team = malloc(sizeof(t_config_team));
     leer_config();
 
-    t_list* entrenadores = parse_entrenadores();
-    log_entrenadores(entrenadores);
-    entrenador_init_list(entrenadores);
-    list_destroy(entrenadores);
-
     config_team->tiempo_reconexion = config_get_int_value(config, "TIEMPO_RECONEXION");
     config_team->retardo_ciclo_cpu = config_get_int_value(config, "RETARDO_CICLO_CPU");
     config_team->algoritmo_planificacion = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
@@ -49,6 +44,11 @@ void config_team_init() {
     logger = iniciar_team_logger(config_team->log_file);
 
     log_config_team(config_team);
+
+    t_list* entrenadores = parse_entrenadores();
+    log_entrenadores(entrenadores);
+    entrenador_init_list(entrenadores);
+    list_destroy(entrenadores);
 }
 
 static void leer_config() {

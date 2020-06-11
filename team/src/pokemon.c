@@ -26,14 +26,12 @@ static t_pokemon_mapeado* new_pokemon(char* nombre, int cantidad, t_coord* posic
     return this_pokemon;
 }
 
-t_list* pokemon_filtrar_especies_encontradas(t_list* lista) {
-    t_list* especies = list_create();
-    void _get_especie(char* k, void* v) {
-        void* objetivo = list_get(lista, k);
-        if (objetivo) list_add(especies, k);
+t_list* pokemon_filtrar_especies_encontradas(t_list* objetivos) {
+    bool _especie_conocida(void* obj) {
+        char* especie = (char*) obj;
+        return dictionary_has_key(pokemon_localizados, especie);
     }
-    dictionary_iterator(pokemon_localizados, (void*)_get_especie);
-    return especies;
+    return list_filter(objetivos, (void*)_especie_conocida);
 }
 
 t_list* pokemon_get(char* especie) {
@@ -61,9 +59,6 @@ void pokemon_sacar_del_mapa(char* nombre, t_coord* posicion) {
             p->cantidad--;
             if (p->cantidad==0) {
                 list_remove_and_destroy_element(ubicaciones_pokemon, i, (void*)liberar_pokemon_mapeado);
-            }
-            if (list_size(ubicaciones_pokemon) == 0) {
-                dictionary_remove_and_destroy(pokemon_localizados, nombre, (void*)liberar_lista_mapeada);
             }
             break;
         }

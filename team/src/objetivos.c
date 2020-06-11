@@ -32,11 +32,13 @@ static void actualizar_objetivos_globales(void* entrenador) {
       t_pokemon_objetivo* objetivo = (t_pokemon_objetivo*) elem;
       // solamente contamos en los objetivos globales aquellos pokemon pendientes de captura.
       // TODO ANALISIS: ver como garantizamos que no se capturen mas que los requeridos de cada especie (Issue: https://github.com/sisoputnfrba/foro/issues/1722#issuecomment-637854754)
-      if(!objetivo->fue_capturado && dictionary_has_key(mapa_objetivos, objetivo->nombre)){
-          int cant = (int) dictionary_get(mapa_objetivos, objetivo->nombre);
-          dictionary_put(mapa_objetivos, objetivo->nombre, (void*) ++cant);
-      } else {
-          dictionary_put(mapa_objetivos, objetivo->nombre, (void*)1);
+      if(!objetivo->fue_capturado){
+          if(dictionary_has_key(mapa_objetivos, objetivo->nombre)){
+              int cant = (int) dictionary_get(mapa_objetivos, objetivo->nombre);
+              dictionary_put(mapa_objetivos, objetivo->nombre, (void*) ++cant);
+          } else {
+              dictionary_put(mapa_objetivos, objetivo->nombre, (void*)1);
+          }
       }
     }
     list_iterate(objetivos, (void*)_actualizar);
@@ -72,7 +74,7 @@ void objetivos_descontar_requeridos(char* pokemon) {
     int cant = (int) dictionary_get(mapa_objetivos, pokemon);
     if (cant) {
         dictionary_put(mapa_objetivos, pokemon, (void*) --cant);
-        if (cant == 0) dictionary_remove(mapa_objetivos, pokemon);
+//        if (cant == 0) dictionary_remove(mapa_objetivos, pokemon);
     }
     else {
         log_warning(default_logger, "Se intento capturar mas %s que los requeridos por el team", pokemon);
@@ -86,4 +88,3 @@ static void log_objetivos_globales(t_dictionary* mapa_objetivos){
     log_debug(default_logger, "Objetivos Globales: ");
     dictionary_iterator(mapa_objetivos, (void*)_loggear);
 }
-

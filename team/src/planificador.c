@@ -103,6 +103,7 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
     if (e->estado == EXIT && list_all_satisfy(entrenador_get_all(), (void*)entrenador_cumplio_objetivos)) {
         log_debug(default_logger, "Todos los objetivos del team fueron cumplidos!");
         // TODO cerrar proceso por objetivo global cumplido
+        exit(0);
     }
 
     t_entrenador* otro_entrenador = NULL;
@@ -118,12 +119,13 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
 
 void planificador_admitir(t_entrenador* e) {
     entrenador_asignar_objetivo(e);
-    if(e->pokemon_buscado != NULL) {
+    if(e->pokemon_buscado == NULL) {
         log_debug(default_logger, "No se replanifica al entrenador #%d porque no hay mas objetivos disponibles", e->id);
-        planificador_encolar_ready(e);
+        return;
     }
     log_debug(default_logger, "Se replanifico al entrenador #%d para capturar un %d en la posicion (%d, %d)",
             e->id, e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion->x, e->pokemon_buscado->ubicacion->y);
+    planificador_encolar_ready(e);
 }
 
 static t_entrenador* detectar_deadlock(t_entrenador* entrenador) {
@@ -146,13 +148,13 @@ static t_entrenador* detectar_deadlock(t_entrenador* entrenador) {
         }
         return list_any_satisfy(mis_sobrantes, (void*)_equals);
     }
-    t_entrenador* _es_mi_faltante(void* item) {
+    bool _es_mi_faltante(void* item) {
         t_pokemon_objetivo* sobrante = (t_pokemon_objetivo*) item;
         bool _equals(void* item) {
             t_pokemon_objetivo* faltante = (t_pokemon_objetivo*) item;
             return string_equals_ignore_case(faltante->nombre, sobrante->nombre);
         }
-        return list_find(faltantes, (void*)_equals);
+        return list_any_satisfy(faltantes, (void*)_equals);
     }
 
     for (int i = 0 ; i < list_size(bloqueados) ; i++) {
@@ -185,6 +187,7 @@ static t_entrenador* planificar_FIFO() {
 
 static t_entrenador* planificar_RR(int quantum) {
     t_entrenador* entrenador = queue_pop(cola_ready);
+    log_debug(default_logger, "Se ejecuta el entrenador #%d", entrenador->id);
     entrenador_otorgar_ciclos_ejecucion(entrenador, quantum);
     return entrenador;
 }
