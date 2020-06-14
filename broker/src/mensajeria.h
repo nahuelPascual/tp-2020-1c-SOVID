@@ -17,7 +17,12 @@
 
 #include "cola.h"
 
-t_dictionary* diccionario_de_colas;
+typedef struct {
+  t_dictionary* diccionario_de_colas;
+  t_memoria* memoria;
+} t_buzon;
+
+t_buzon* buzon;
 t_list* mensajes_pendientes_de_ack;
 int id_mensaje;
 

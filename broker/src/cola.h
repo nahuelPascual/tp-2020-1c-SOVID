@@ -13,6 +13,7 @@
 #include <pthread.h>
 
 #include <commons/collections/queue.h>
+#include <commons/collections/dictionary.h>
 #include <delibird-commons/utils/ipc.h>
 
 #include "mensaje_despachable.h"
@@ -29,12 +30,13 @@ typedef struct {
 } t_cola;
 
 t_cola* cola_crear();
+t_dictionary* cola_crear_diccionario();
 
 void cola_push_mensaje_despachable(t_cola* cola, t_mensaje_despachable* mensaje_despachable);
 t_mensaje_despachable* cola_pop_mensaje_despachable(t_cola* cola);
 
 void cola_add_suscriptor(t_cola* cola, int suscriptor);
 
-void cola_despachar_mensaje_a_suscriptores(t_cola* cola, t_mensaje_despachable* mensaje_despachable);
+void cola_despachar_mensaje_a_suscriptores(t_cola* cola, t_mensaje_despachable* mensaje_despachable, t_paquete* paquete);
 
 #endif /* TEST_COLA_H_ */

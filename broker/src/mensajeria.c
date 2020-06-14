@@ -7,14 +7,10 @@
 
 #include "mensajeria.h"
 
-void _inicializar_colas() {
-    diccionario_de_colas = dictionary_create();
-    dictionary_put(diccionario_de_colas, string_itoa(NEW_POKEMON), cola_crear());
-    dictionary_put(diccionario_de_colas, string_itoa(APPEARED_POKEMON), cola_crear());
-    dictionary_put(diccionario_de_colas, string_itoa(CATCH_POKEMON), cola_crear());
-    dictionary_put(diccionario_de_colas, string_itoa(CAUGHT_POKEMON), cola_crear());
-    dictionary_put(diccionario_de_colas, string_itoa(GET_POKEMON), cola_crear());
-    dictionary_put(diccionario_de_colas, string_itoa(LOCALIZED_POKEMON), cola_crear());
+void _inicializar_buzon() {
+    buzon = malloc(sizeof(t_buzon));
+    buzon->diccionario_de_colas = cola_crear_diccionario();
+    buzon->memoria = memoria_crear(0, 1024, FIRST_FIT);
 }
 
 void _inicializar_semaforos() {
@@ -46,14 +42,32 @@ bool es_mensaje_redundante(t_paquete* paquete, t_cola* cola) {
     return false;
 }
 
+t_cola* mensajeria_get_cola(t_tipo_mensaje tipo_mensaje) {
+    return dictionary_get(buzon->diccionario_de_colas, string_itoa(tipo_mensaje));
+}
+
+void _mensajeria_almacenar_paquete(t_paquete* paquete, t_cola* cola) {
+
+    t_mensaje_despachable* mensaje_despachable = mensaje_despachable_from_paquete(paquete, buzon->memoria);
+
+    memoria_dividir_particion_si_es_mas_grande_que(buzon->memoria, mensaje_despachable->particion_asociada, mensaje_despachable->size);
+
+    memoria_asignar_paquete_a_la_particion(buzon->memoria, paquete, mensaje_despachable->particion_asociada);
+
+    cola_push_mensaje_despachable(cola, mensaje_despachable);
+}
+
+
 void _procesar_paquete_de(t_paquete* paquete, int cliente) {
     switch(paquete->header->tipo_paquete) {
     case SUSCRIPCION: {
         t_suscripcion* suscripcion = paquete_to_suscripcion(paquete);
 
-        t_cola* cola = dictionary_get(diccionario_de_colas, string_itoa(suscripcion->tipo_mensaje));
+        t_cola* cola = mensajeria_get_cola(suscripcion->tipo_mensaje);
 
         cola_add_suscriptor(cola, cliente);
+
+        suscripcion_liberar(suscripcion);
 
         break;
     }
@@ -71,36 +85,37 @@ void _procesar_paquete_de(t_paquete* paquete, int cliente) {
 
         if(mensaje_tiene_todos_los_acks) {
             pthread_mutex_lock(&mutex_pendientes_de_ack);
-            mensaje_despachable_remove_by_id_from(mensajes_pendientes_de_ack, mensaje_despachable->paquete->header->id_mensaje);
+            mensaje_despachable_remove_by_id_from(mensajes_pendientes_de_ack, mensaje_despachable->id);
             pthread_mutex_unlock(&mutex_pendientes_de_ack);
 
             mensaje_despachable_liberar(mensaje_despachable);
         }
 
+        ack_liberar(ack);
+
         break;
     }
     case MENSAJE: {
-        t_cola* cola = dictionary_get(diccionario_de_colas, string_itoa(paquete->header->tipo_mensaje));
-        if(es_mensaje_redundante(paquete, cola)) {
-            paquete_liberar(paquete);
-        }
-        else {
+        t_cola* cola = mensajeria_get_cola(paquete->header->tipo_mensaje);
+
+        if(!es_mensaje_redundante(paquete, cola)) {
             pthread_mutex_lock(&mutex_id_mensaje);
             paquete->header->id_mensaje = id_mensaje++;
             pthread_mutex_unlock(&mutex_id_mensaje);
 
             _informar_id_mensaje_a(cliente, paquete->header->id_mensaje);
 
-            t_mensaje_despachable* mensaje_despachable = mensaje_despachable_crear(paquete);
-
-            cola_push_mensaje_despachable(cola, mensaje_despachable);
+            _mensajeria_almacenar_paquete(paquete, cola);
         }
+
         break;
     }
     default:
         printf("Anda a saber que le llego al pobre broker");
         break;
     }
+
+    paquete_liberar(paquete);
 }
 
 void _gestionar_a(int cliente) {
@@ -111,7 +126,7 @@ void _gestionar_a(int cliente) {
 }
 
 void mensajeria_inicializar() {
-    _inicializar_colas();
+    _inicializar_buzon();
     _inicializar_semaforos();
     mensajes_pendientes_de_ack = list_create();
     id_mensaje = 1;
@@ -129,12 +144,15 @@ void mensajeria_gestionar_clientes() {
 }
 
 void mensajeria_despachar_mensajes_de(t_tipo_mensaje tipo_mensaje) {
-    t_cola* cola = dictionary_get(diccionario_de_colas, string_itoa(tipo_mensaje));
+    t_cola* cola = mensajeria_get_cola(tipo_mensaje);
 
     while(1) {
         t_mensaje_despachable* mensaje_despachable = cola_pop_mensaje_despachable(cola);
 
-        cola_despachar_mensaje_a_suscriptores(cola, mensaje_despachable);
+        cola_despachar_mensaje_a_suscriptores(
+                cola,
+                mensaje_despachable,
+                mensaje_despachable_to_paquete(mensaje_despachable, buzon->memoria));
 
         pthread_mutex_lock(&mutex_pendientes_de_ack);
         list_add(mensajes_pendientes_de_ack, mensaje_despachable);

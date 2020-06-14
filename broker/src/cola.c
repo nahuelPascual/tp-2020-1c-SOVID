@@ -21,6 +21,19 @@ t_cola* cola_crear() {
     return cola;
 }
 
+t_dictionary* cola_crear_diccionario() {
+    t_dictionary* diccionario_de_colas = dictionary_create();
+
+    dictionary_put(diccionario_de_colas, string_itoa(NEW_POKEMON), cola_crear());
+    dictionary_put(diccionario_de_colas, string_itoa(APPEARED_POKEMON), cola_crear());
+    dictionary_put(diccionario_de_colas, string_itoa(CATCH_POKEMON), cola_crear());
+    dictionary_put(diccionario_de_colas, string_itoa(CAUGHT_POKEMON), cola_crear());
+    dictionary_put(diccionario_de_colas, string_itoa(GET_POKEMON), cola_crear());
+    dictionary_put(diccionario_de_colas, string_itoa(LOCALIZED_POKEMON), cola_crear());
+
+    return diccionario_de_colas;
+}
+
 void cola_push_mensaje_despachable(t_cola* cola, t_mensaje_despachable* mensaje_despachable) {
     pthread_mutex_lock(&cola->mutex_mensajes_despachables);
     queue_push(cola->mensajes_despachables, mensaje_despachable);
@@ -45,9 +58,9 @@ void cola_add_suscriptor(t_cola* cola, int suscriptor) {
     pthread_mutex_unlock(&cola->mutex_suscriptores);
 }
 
-void cola_despachar_mensaje_a_suscriptores(t_cola* cola, t_mensaje_despachable* mensaje_despachable) {
+void cola_despachar_mensaje_a_suscriptores(t_cola* cola, t_mensaje_despachable* mensaje_despachable, t_paquete* paquete) {
     void despachar_mensaje_a(int suscriptor) {
-        ipc_enviar_a(suscriptor, mensaje_despachable->paquete); //TODO: bool seEnvio = ipc_enviar...
+        ipc_enviar_a(suscriptor, paquete);
         list_add(mensaje_despachable->suscriptores_a_los_que_fue_enviado, (void*) suscriptor);
     }
 
