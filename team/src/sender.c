@@ -14,7 +14,7 @@ void sender_init_mensajes_esperando_respuesta() {
 }
 
 int enviar_suscripcion(t_tipo_mensaje tipo_mensaje) {
-    t_suscripcion* s = suscripcion_crear(tipo_mensaje, 0);
+    t_suscripcion* s = suscripcion_crear(tipo_mensaje, config_team->id, 0);
     t_paquete* p = paquete_from_suscripcion(s);
 
     int broker = enviar_broker(p);
@@ -72,7 +72,7 @@ bool enviar_catch_pokemon(int id_entrenador, t_pokemon_mapeado* pokemon) {
 }
 
 void enviar_ack(uint32_t id_mensaje, int socket) {
-    t_ack* ack = ack_crear(id_mensaje);
+    t_ack* ack = ack_crear(config_team->id, id_mensaje);
     t_paquete* paquete = paquete_from_ack(ack);
 
     ipc_enviar_a(socket, paquete);

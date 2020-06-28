@@ -38,13 +38,14 @@ int main(int argc, char **argv) {
     logger = log_create("log_gameboy.txt", "GAMEBOY", true, LOG_LEVEL_INFO);
 
     t_paquete* paquete;
-    if (string_equals_ignore_case(proceso, "SUSCRIPTOR")) {
-        t_suscripcion* suscripcion = suscripcion_crear(tipo_mensaje, atoi(argv[3]));
+    if(string_equals_ignore_case(proceso, "SUSCRIPTOR")) {
+        t_suscripcion* suscripcion = suscripcion_crear(tipo_mensaje, get_id_suscriptor(), atoi(argv[3]));
         paquete = paquete_from_suscripcion(suscripcion);
         ip = get_ip("BROKER");
         puerto = get_puerto("BROKER");
         suscripcion_liberar(suscripcion);
-    } else {
+    }
+    else {
         paquete = resolver_mensaje(tipo_mensaje, argv);
         if (paquete == NULL) {
             log_error(logger, "El tipo de mensaje \"%s\" no es valido", nombre_cola);
@@ -61,7 +62,7 @@ int main(int argc, char **argv) {
     logger_enviado(logger, paquete);
 
     if(string_equals_ignore_case(proceso, "SUSCRIPTOR")) {
-        while (ipc_hay_datos_para_recibir_de(conexion)) {
+        while(ipc_hay_datos_para_recibir_de(conexion)) {
             paquete = ipc_recibir_de(conexion);
             logger_recibido(logger, paquete);
         }

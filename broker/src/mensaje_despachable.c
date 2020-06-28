@@ -60,14 +60,18 @@ void mensaje_despachable_liberar(t_mensaje_despachable* mensaje_despachable) {
     free(mensaje_despachable);
 }
 
+void mensaje_despachable_agregar_ack(t_mensaje_despachable* mensaje_despachable, uint32_t id_suscriptor) {
+    list_add(mensaje_despachable->ids_suscriptores_que_lo_recibieron, (void*) id_suscriptor);
+}
+
 bool mensaje_despachable_tiene_todos_los_acks(t_mensaje_despachable* mensaje_despachable) {
-    bool igualigual(int un_suscriptor, int otro_suscriptor) {
-        return un_suscriptor == otro_suscriptor;
+    bool _igualigual(int id_un_suscriptor, int id_otro_suscriptor) {
+        return id_un_suscriptor == id_otro_suscriptor;
     }
 
-    return list_equals(mensaje_despachable->suscriptores_a_los_que_fue_enviado,
-                       mensaje_despachable->suscriptores_que_lo_recibieron,
-                       (void*) igualigual);
+    return list_equals(mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado,
+                       mensaje_despachable->ids_suscriptores_que_lo_recibieron,
+                       (void*) _igualigual);
 }
 
 t_mensaje_despachable* mensaje_despachable_find_by_id_in(t_list* lista, uint32_t id) {

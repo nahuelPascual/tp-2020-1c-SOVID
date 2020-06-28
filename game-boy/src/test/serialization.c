@@ -101,8 +101,8 @@ void test_caught_pokemon(int conn) {
 }
 
 void test_ack(int conn) {
-    printf("Testing ack\n");
-    t_ack* ack = ack_crear(1);
+    printf("testing ack\n");
+    t_ack* ack = ack_crear(1, 1);
 
     t_paquete* paquete = paquete_from_ack(ack);
 
@@ -115,8 +115,8 @@ void test_ack(int conn) {
 }
 
 void test_suscripcion(int conn) {
-    printf("Testing suscripcion\n");
-    t_suscripcion* suscripcion = suscripcion_crear(NEW_POKEMON, 10);
+    printf("testing suscripcion\n");
+    t_suscripcion* suscripcion = suscripcion_crear(NEW_POKEMON, 1, 10);
 
     t_paquete* paquete = paquete_from_suscripcion(suscripcion);
 
