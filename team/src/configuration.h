@@ -17,7 +17,6 @@
 #include "objetivos.h"
 
 typedef struct {
-    uint32_t id;
     int tiempo_reconexion;
     int retardo_ciclo_cpu;
     char* algoritmo_planificacion;

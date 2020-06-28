@@ -29,12 +29,6 @@ void config_team_init() {
     config_team = malloc(sizeof(t_config_team));
     leer_config();
 
-    t_list* entrenadores = parse_entrenadores();
-    log_entrenadores(entrenadores);
-    entrenador_init_list(entrenadores);
-    list_destroy(entrenadores);
-
-    config_team->id = (uint32_t) config_get_int_value(config, "ID");
     config_team->tiempo_reconexion = config_get_int_value(config, "TIEMPO_RECONEXION");
     config_team->retardo_ciclo_cpu = config_get_int_value(config, "RETARDO_CICLO_CPU");
     config_team->algoritmo_planificacion = config_get_string_value(config, "ALGORITMO_PLANIFICACION");
@@ -143,7 +137,6 @@ static t_list* parse_pokemones(char* array_pokemones){
 }
 
 static void log_config_team(t_config_team* config_team){
-    log_debug(default_logger, "Team ID: %d", config_team->id);
     log_debug(default_logger, "Tiempo Reconexion: %i", config_team->tiempo_reconexion);
     log_debug(default_logger, "Retardo Ciclo CPU: %i", config_team->retardo_ciclo_cpu);
     log_debug(default_logger, "Algoritmo Planificacion: %s", config_team->algoritmo_planificacion);

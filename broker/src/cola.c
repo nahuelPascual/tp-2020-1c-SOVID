@@ -7,14 +7,6 @@
 
 #include "cola.h"
 
-t_suscriptor* _crear_suscriptor(uint32_t id, int socket_asociado) {
-    t_suscriptor* suscriptor = malloc(sizeof(t_suscriptor));
-    suscriptor->id = id;
-    suscriptor->socket_asociado = socket_asociado;
-
-    return suscriptor;
-}
-
 t_cola* cola_crear() {
     t_cola* cola = malloc(sizeof(t_cola));
     cola->mensajes_despachables = queue_create();
@@ -24,7 +16,7 @@ t_cola* cola_crear() {
     pthread_mutex_init(&cola->mutex_mensajes_despachables, NULL);
     sem_init(&cola->contador_mensajes_sin_despachar, 0, 0);
     pthread_mutex_init(&cola->mutex_suscriptores, NULL);
-    pthread_mutex_init(&cola->mutex_correlativos_recibidos, NULL);
+    pthread_mutex_init(&cola->mutex_correlativos, NULL);
 
     return cola;
 }
@@ -60,31 +52,16 @@ t_mensaje_despachable* cola_pop_mensaje_despachable(t_cola* cola) {
     return mensaje_despachable;
 }
 
-void cola_add_or_update_suscriptor(t_cola* cola, uint32_t id_suscriptor, int socket_suscriptor) {
-    bool _is_the_one(t_suscriptor* suscriptor) {
-        return suscriptor->id == id_suscriptor;
-    }
-
-    //TODO: Suscripciones por tiempo? Que pasa en caidas y recuperaciones?
+void cola_add_suscriptor(t_cola* cola, int suscriptor) {
     pthread_mutex_lock(&cola->mutex_suscriptores);
-    t_suscriptor* suscriptor = list_find(cola->suscriptores, (void*) _is_the_one);
-
-    if(suscriptor) {
-        suscriptor->socket_asociado = socket_suscriptor;
-    }
-    else {
-        list_add(cola->suscriptores, _crear_suscriptor(id_suscriptor, socket_suscriptor));
-    }
+    list_add(cola->suscriptores, (void*) suscriptor); //TODO: suscripcion->tiempo PARA QUE LO USO?
     pthread_mutex_unlock(&cola->mutex_suscriptores);
 }
 
-void cola_despachar_mensaje_a_suscriptores(t_cola* cola, t_mensaje_despachable* mensaje_despachable) {
-    void despachar_mensaje_a(t_suscriptor* suscriptor) {
-        bool enviado = ipc_enviar_a(suscriptor->socket_asociado, mensaje_despachable->paquete);
-
-        if(enviado) {
-            list_add(mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado, (void*) suscriptor->id);
-        }
+void cola_despachar_mensaje_a_suscriptores(t_cola* cola, t_mensaje_despachable* mensaje_despachable, t_paquete* paquete) {
+    void despachar_mensaje_a(int suscriptor) {
+        ipc_enviar_a(suscriptor, paquete);
+        list_add(mensaje_despachable->suscriptores_a_los_que_fue_enviado, (void*) suscriptor);
     }
 
     pthread_mutex_lock(&cola->mutex_suscriptores);

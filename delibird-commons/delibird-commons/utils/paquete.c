@@ -106,10 +106,7 @@ t_caught_pokemon* paquete_to_caught_pokemon(t_paquete* paquete) {
 t_ack* paquete_to_ack(t_paquete* paquete) {
     t_ack* ack = malloc(sizeof(t_ack));
 
-    int offset = 0;
-    memcpy(&ack->id_suscriptor, paquete->payload + offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-    memcpy(&ack->id_mensaje, paquete->payload + offset, sizeof(uint32_t));
+    memcpy(&ack->id_mensaje, paquete->payload, sizeof(uint32_t));
 
     return ack;
 }
@@ -120,8 +117,6 @@ t_suscripcion* paquete_to_suscripcion(t_paquete* paquete) {
     int offset = 0;
     memcpy(&suscripcion->tipo_mensaje, paquete->payload + offset, sizeof(t_tipo_mensaje));
     offset += sizeof(t_tipo_mensaje);
-    memcpy(&suscripcion->id_suscriptor, paquete->payload + offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
     memcpy(&suscripcion->tiempo, paquete->payload + offset, sizeof(uint32_t));
 
     return suscripcion;
@@ -260,14 +255,11 @@ t_paquete* paquete_from_caught_pokemon(t_caught_pokemon* pokemon) {
 t_paquete* paquete_from_ack(t_ack* ack) {
     t_paquete* paquete = malloc(sizeof(t_paquete));
 
-    uint32_t size = sizeof(uint32_t) * 2;
+    uint32_t size = sizeof(uint32_t);
 
     void* stream = malloc(size);
-    int offset = 0;
 
-    memcpy(stream + offset, &ack->id_suscriptor, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-    memcpy(stream + offset, &ack->id_mensaje, sizeof(uint32_t));
+    memcpy(stream, &ack->id_mensaje, sizeof(uint32_t));
 
     paquete->header = crear_header(ACK, NO_APLICA, size);
     paquete->payload = stream;
@@ -278,15 +270,13 @@ t_paquete* paquete_from_ack(t_ack* ack) {
 t_paquete* paquete_from_suscripcion(t_suscripcion* suscripcion) {
     t_paquete* paquete = malloc(sizeof(t_paquete));
 
-    uint32_t size = sizeof(t_tipo_mensaje) + sizeof(uint32_t) * 2;
+    uint32_t size = sizeof(t_tipo_mensaje) + sizeof(uint32_t);
 
     void* stream = malloc(size);
     int offset = 0;
 
     memcpy(stream + offset, &suscripcion->tipo_mensaje, sizeof(t_tipo_mensaje));
     offset += sizeof(t_tipo_mensaje);
-    memcpy(stream + offset, &suscripcion->id_suscriptor, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
     memcpy(stream + offset, &suscripcion->tiempo, sizeof(uint32_t));
 
     paquete->header = crear_header(SUSCRIPCION, NO_APLICA, size);
@@ -310,7 +300,7 @@ t_paquete* paquete_from_informe_id(t_informe_id* informe_id) {
     return paquete;
 }
 
-bool paquete_es_mensaje_de_respuesta(t_paquete* paquete) {
+bool paquete_mensaje_es_respuesta(t_paquete* paquete) {
     return paquete->header->tipo_mensaje == MENSAJE && paquete->header->correlation_id_mensaje > 0;
 }
 

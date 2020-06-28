@@ -7,15 +7,11 @@
 t_config* config;
 
 void config_init(char* path) {
-    config = config_create(path);
+	config = config_create(path);
 }
 
 void config_close() {
     config_destroy(config);
-}
-
-uint32_t get_id_suscriptor() {
-    return config_get_int_value(config, "ID_SUSCRIPTOR");
 }
 
 char* get_ip(char* proceso) {
@@ -27,7 +23,7 @@ char* get_ip(char* proceso) {
     return value;
 }
 
-char* get_puerto(char* proceso) {
+char* get_puerto(char* proceso){
     char* str = string_new();
     string_append(&str, "PUERTO_");
     string_append(&str, proceso);

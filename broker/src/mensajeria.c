@@ -26,24 +26,19 @@ void _informar_id_mensaje_a(int cliente, int id_mensaje) {
     informe_id_liberar(informe_id);
 }
 
-//TODO: Separar en 2 funciones (bool _es_mensaje_redundante + void cola_add_correlativo_recibido)
-bool _es_mensaje_redundante(t_paquete* paquete, t_cola* cola) {
-    if(paquete_es_mensaje_de_respuesta(paquete)) {
-        bool _condicion(uint32_t correlation_id_mensaje) {
-            return paquete->header->correlation_id_mensaje == correlation_id_mensaje;
+bool es_mensaje_redundante(t_paquete* paquete, t_cola* cola) {
+    if(paquete_mensaje_es_respuesta(paquete)) {
+        bool _comparador(uint32_t* un_elemento) {
+            return paquete->header->correlation_id_mensaje == *un_elemento;
         }
-
-        pthread_mutex_lock(&cola->mutex_correlativos_recibidos);
-        bool fue_recibido = list_any_satisfy(cola->correlativos_recibidos, (void*) _condicion);
-
-        if(!fue_recibido) {
-            list_add(cola->correlativos_recibidos, (void*) paquete->header->correlation_id_mensaje);
+        pthread_mutex_lock(&cola->mutex_correlativos);
+        bool ya_fue_recibido = list_any_satisfy(cola->correlativos_recibidos, (void*) _comparador);
+        if(!ya_fue_recibido) {
+            list_add(cola->correlativos_recibidos, &paquete->header->correlation_id_mensaje);
         }
-        pthread_mutex_unlock(&cola->mutex_correlativos_recibidos);
-
-        return fue_recibido;
+        pthread_mutex_unlock(&cola->mutex_correlativos);
+        return ya_fue_recibido;
     }
-
     return false;
 }
 
@@ -62,6 +57,7 @@ void _mensajeria_almacenar_paquete(t_paquete* paquete, t_cola* cola) {
     cola_push_mensaje_despachable(cola, mensaje_despachable);
 }
 
+
 void _procesar_paquete_de(t_paquete* paquete, int cliente) {
     switch(paquete->header->tipo_paquete) {
     case SUSCRIPCION: {
@@ -69,14 +65,7 @@ void _procesar_paquete_de(t_paquete* paquete, int cliente) {
 
         t_cola* cola = mensajeria_get_cola(suscripcion->tipo_mensaje);
 
-        cola_add_or_update_suscriptor(cola, suscripcion->id_suscriptor, cliente);
-
-        //TODO: enviar los mensajes cacheados ???
-
-        suscripcion_liberar(suscripcion);
-        paquete_liberar(paquete);
-
-        suscripcion_liberar(suscripcion);
+        cola_add_suscriptor(cola, cliente);
 
         suscripcion_liberar(suscripcion);
 
@@ -90,9 +79,9 @@ void _procesar_paquete_de(t_paquete* paquete, int cliente) {
         pthread_mutex_unlock(&mutex_pendientes_de_ack);
 
         pthread_mutex_lock(&mensaje_despachable->mutex_ack);
-        mensaje_despachable_agregar_ack(mensaje_despachable, ack->id_suscriptor);
+        list_add(mensaje_despachable->suscriptores_que_lo_recibieron, (void*) cliente);
         bool mensaje_tiene_todos_los_acks = mensaje_despachable_tiene_todos_los_acks(mensaje_despachable);
-        pthread_mutex_unlock(&mensaje_despachable->mutex_ack);
+        pthread_mutex_lock(&mensaje_despachable->mutex_ack);
 
         if(mensaje_tiene_todos_los_acks) {
             pthread_mutex_lock(&mutex_pendientes_de_ack);
@@ -109,7 +98,7 @@ void _procesar_paquete_de(t_paquete* paquete, int cliente) {
     case MENSAJE: {
         t_cola* cola = mensajeria_get_cola(paquete->header->tipo_mensaje);
 
-        if(!_es_mensaje_redundante(paquete, cola)) {
+        if(!es_mensaje_redundante(paquete, cola)) {
             pthread_mutex_lock(&mutex_id_mensaje);
             paquete->header->id_mensaje = id_mensaje++;
             pthread_mutex_unlock(&mutex_id_mensaje);

@@ -7,11 +7,10 @@
 
 #include "suscripcion.h"
 
-t_suscripcion* suscripcion_crear(t_tipo_mensaje tipo_mensaje, uint32_t id_suscriptor, uint32_t tiempo) {
+t_suscripcion* suscripcion_crear(t_tipo_mensaje tipo_mensaje, uint32_t tiempo) {
     t_suscripcion* suscripcion = malloc(sizeof(t_suscripcion));
 
     suscripcion->tipo_mensaje = tipo_mensaje;
-    suscripcion->id_suscriptor = id_suscriptor;
     suscripcion->tiempo = tiempo;
 
     return suscripcion;
