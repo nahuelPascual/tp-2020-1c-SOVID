@@ -116,10 +116,12 @@ void liberar_catch_pokemon_enviado(t_mensaje_enviado* c) {
 static int enviar_broker(t_paquete* p) {
     int broker = ipc_conectarse_a(config_team->ip_broker, config_team->puerto_broker);
     bool ok = ipc_enviar_a(broker, p);
+  
     logger_enviado(logger, p);
     if(!ok){
         logs_broker_error();
     }
+
     return ok ? broker : -1;
 }
 

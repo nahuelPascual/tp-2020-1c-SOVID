@@ -32,7 +32,6 @@ static t_info* create_info(){
     t_info* info = malloc(sizeof(t_info));
 
     info->ciclos_cpu_ejecutados = 0;
-    info->deadlocks = 0;
     info->ejecucion_parcial = 0;
     info->estimado_siguiente_rafaga = config_team->estimacion_inicial;
     info->ultima_ejecucion = config_team->estimacion_inicial;
@@ -93,6 +92,8 @@ t_entrenador* entrenador_get_libre_mas_cercano(t_coord* posicion_buscada) {
 }
 
 void entrenador_otorgar_ciclos_ejecucion(t_entrenador* entrenador, int cant) {
+    logs_transicion(entrenador, EXECUTE);
+    entrenador->estado = EXECUTE;
     for (int i = 0 ; i < cant ; i++) {
         sem_post(list_get(sem_entrenadores, entrenador->id));
     }
@@ -106,8 +107,7 @@ void entrenador_execute(t_entrenador* e) {
             }
             sem_wait(list_get(sem_entrenadores, e->id));
         }
-        logs_transicion(e, EXECUTE);
-        e->estado = EXECUTE;
+
         sleep(config_team->retardo_ciclo_cpu);
         e->info->ciclos_cpu_ejecutados++;
 
@@ -307,6 +307,7 @@ static void realizar_intercambio(t_entrenador* entrenador) {
 
     entrenador_verificar_objetivos(entrenador);
     entrenador_verificar_objetivos(otro_entrenador);
+
     logs_intercambio(entrenador, otro_entrenador, entrego, recibo);
     log_debug(default_logger, "Se realizo un intercambio entre entrenador #%d (%s) y entrenador #%d (%s)",
             entrenador->id, entrego->nombre, otro_entrenador->id, recibo->nombre);
@@ -406,7 +407,6 @@ static bool queda_quantum(int id) {
     return sem_trywait(sem) == 0;
 }
 
-/************************************************** LOGS **************************************************/
 static void log_algoritmo(t_entrenador* entrenador){
     if (string_equals_ignore_case(config_team->algoritmo_planificacion, "SJF-CD")) { // TODO revisar si esta bien el nombre del SJF-CD y ver de evitar el if con un op ternario
         log_info(logger, "Entrenador: %d pasa a READY desde EXECUTE por DESALOJO", entrenador->id);

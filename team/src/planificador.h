@@ -13,6 +13,7 @@
 #include <commons/collections/queue.h>
 #include "entrenador.h"
 #include "configuration.h"
+#include "metricas.h"
 
 void planificador_init();
 void planificador_encolar_ready(t_entrenador*);

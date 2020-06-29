@@ -27,7 +27,6 @@ typedef enum {
 
 typedef struct {
     int ciclos_cpu_ejecutados;
-    int deadlocks;
     /* datos para SJF */
     float ultima_ejecucion;
     float ultima_estimacion;

@@ -56,7 +56,9 @@ static void planificar(){
             exit(1);
         }
 
+        metricas_add_cambio_contexto(); // inicia proceso
         sem_wait(&sem_post_ejecucion);
+        metricas_add_cambio_contexto(); // vuelve planificador
 
         switch (entrenador_planificado->estado) {
             case EXECUTE: // quantum consumido o SJF-CD
@@ -105,6 +107,7 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
     if (e->estado == EXIT && list_all_satisfy(entrenador_get_all(), (void*)entrenador_cumplio_objetivos)) {
         logs_deadlock(false);
         log_debug(default_logger, "Todos los objetivos del team fueron cumplidos!");
+        metricas_calcular();
         // TODO cerrar proceso por objetivo global cumplido
         exit(0);
     }
@@ -115,8 +118,7 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
         log_debug(default_logger, "Se planifica al entrenador #%d hacia la posicion (%d, %d) para resolver DEADLOCK con entrenador #%d",
                 e->id, otro_entrenador->posicion->x, otro_entrenador->posicion->y, otro_entrenador->id);
         e->deadlock = otro_entrenador->deadlock = true;
-        e->info->deadlocks++;
-        otro_entrenador->info->deadlocks++;
+        metricas_add_deadlock();
         planificador_encolar_ready(e);
     }
 }
