@@ -22,6 +22,12 @@ static void realizar_intercambio(t_entrenador*);
 static bool queda_quantum(int id);
 static t_pokemon_mapeado* encontrar_pokemon_cercano(t_entrenador*, t_list*);
 
+static void log_algoritmo(t_entrenador* entrenador);
+static void logs_movimiento_entrenador(t_entrenador* entrenador);
+static void logs_atrapar(t_entrenador* entrenador);
+static void logs_intercambio(t_entrenador* entrenador,t_entrenador* otro_entrenador, t_pokemon_capturado* entregado,t_pokemon_capturado* recibido);
+static void logs_error_transicion();
+
 static t_info* create_info(){
     t_info* info = malloc(sizeof(t_info));
 
@@ -47,6 +53,8 @@ t_entrenador* entrenador_new(int id, t_list* objetivos, t_list* capturados, t_co
     entrenador->pokemon_buscado = NULL;
     entrenador->intercambio = NULL;
     entrenador->info = create_info();
+
+    logs_transicion(entrenador, NEW); // FIXME ojo implicit declaration
 
     return entrenador;
 }
@@ -98,7 +106,7 @@ void entrenador_execute(t_entrenador* e) {
             }
             sem_wait(list_get(sem_entrenadores, e->id));
         }
-
+        logs_transicion(e, EXECUTE);
         e->estado = EXECUTE;
         sleep(config_team->retardo_ciclo_cpu);
         e->info->ciclos_cpu_ejecutados++;
@@ -111,9 +119,11 @@ void entrenador_execute(t_entrenador* e) {
                 while (queda_quantum(e->id)); // consumir quantum restante
             }
         } else {
+            logs_transicion(e, BLOCKED_WAITING);
             e->estado = BLOCKED_WAITING;
             log_debug(default_logger, "Entrenador #%d paso a estado BLOCKED_WAITING", e->id);
             bool enviado = enviar_catch_pokemon(e->id, e->pokemon_buscado);
+            logs_atrapar(e);
             if (!enviado) {
                 log_debug(default_logger, "Entrenador #%d capturo automaticamente a %s", e->id, e->pokemon_buscado->pokemon);
                 entrenador_concretar_captura(e, e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion);
@@ -170,15 +180,18 @@ static bool entrenador_is_full(t_entrenador* e) {
 
 void entrenador_verificar_objetivos(t_entrenador* e) {
     if (!entrenador_is_full(e)) {
+        logs_transicion(e, BLOCKED_IDLE);
         e->estado = BLOCKED_IDLE;
         log_debug(default_logger, "Entrenador #%d paso a estado BLOCKED_IDLE", e->id);
         return;
     }
 
     if (entrenador_cumplio_objetivos(e)) {
+        logs_transicion(e, EXIT);
         e->estado = EXIT;
         log_debug(default_logger, "Entrenador #%d paso a estado EXIT", e->id);
     } else {
+        logs_transicion(e, BLOCKED_FULL);
         e->estado = BLOCKED_FULL;
         log_debug(default_logger, "Entrenador #%d paso a estado BLOCKED_FULL", e->id);
     }
@@ -294,7 +307,7 @@ static void realizar_intercambio(t_entrenador* entrenador) {
 
     entrenador_verificar_objetivos(entrenador);
     entrenador_verificar_objetivos(otro_entrenador);
-
+    logs_intercambio(entrenador, otro_entrenador, entrego, recibo);
     log_debug(default_logger, "Se realizo un intercambio entre entrenador #%d (%s) y entrenador #%d (%s)",
             entrenador->id, entrego->nombre, otro_entrenador->id, recibo->nombre);
 }
@@ -339,6 +352,7 @@ static void avanzar(t_entrenador* e) {
             actual->y++;
         }
     }
+    logs_movimiento_entrenador(e);
     log_debug(default_logger, "Entrenador #%d se movio a la posicion (%d, %d)", e->id, actual->x, actual->y);
 }
 
@@ -390,4 +404,130 @@ static void log_objetivo(void* elemento){
 static bool queda_quantum(int id) {
     sem_t* sem = list_get(sem_entrenadores, id);
     return sem_trywait(sem) == 0;
+}
+
+/************************************************** LOGS **************************************************/
+static void log_algoritmo(t_entrenador* entrenador){
+    if (string_equals_ignore_case(config_team->algoritmo_planificacion, "SJF-CD")) { // TODO revisar si esta bien el nombre del SJF-CD y ver de evitar el if con un op ternario
+        log_info(logger, "Entrenador: %d pasa a READY desde EXECUTE por DESALOJO", entrenador->id);
+    }
+    else{
+        log_info(logger, "Entrenador: %d pasa a READY desde EXECUTE por FIN DE QUANTUM", entrenador->id);
+    }
+}
+
+void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado){
+    switch(nuevoEstado){
+        case NEW:
+            log_info(logger, "Entrenador: %d pasa a NEW por inicializacion", entrenador->id);
+            break;
+
+        case READY:
+            switch(entrenador->estado){
+            case NEW:
+                log_info(logger, "Entrenador: %d pasa a READY desde NEW por aparicion de nuevo objetivo", entrenador->id);
+                break;
+
+            case EXECUTE:
+                log_algoritmo(entrenador);
+                break;
+
+            case BLOCKED_IDLE:
+                log_info(logger, "Entrenador: %d pasa a READY desde BLOCKED_IDLE por aparicion de nuevo objetivo", entrenador->id);
+                break;
+
+            default:
+                logs_error_transicion();
+                break;
+            }
+            break;
+
+        case BLOCKED_IDLE:
+            switch(entrenador->estado){
+            case EXECUTE:
+                log_info(logger, "Entrenador: %d pasa a BLOCKED_IDLE desde EXECUTE esperando nuevo objetivo", entrenador->id);
+                break;
+
+            case BLOCKED_WAITING:
+                log_info(logger, "Entrenador: %d pasa a BLOCKED_IDLE desde BLOCKED_WAITING por confirmacion del CAUGHT", entrenador->id);
+                break;
+
+            default:
+                logs_error_transicion();
+                break;
+            }
+            break;
+
+        case BLOCKED_WAITING:
+            log_info(logger, "Entrenador: %d pasa a BLOCKED_WAITING desde EXECUTE por espera de confimacion del CATCH", entrenador->id);
+            break;
+
+        case BLOCKED_FULL:
+            switch(entrenador->estado){
+                case EXECUTE:
+                    log_info(logger, "Entrenador: %d pasa a BLOCKED_FULL desde EXECUTE por llegada al limite de capturas despues de realizar un intercambio", entrenador->id);
+                    break;
+
+                case BLOCKED_WAITING:
+                    log_info(logger, "Entrenador: %d pasa a BLOCKED_FULL desde BLOCKED_WAITING por llegada al limite de capturas", entrenador->id);
+                    break;
+
+                default:
+                    logs_error_transicion();
+                    break;
+            }
+            break;
+
+        case EXIT:
+        switch(entrenador->estado){
+            case BLOCKED_WAITING:
+                log_info(logger, "Entrenador: %d pasa a EXIT desde BLOCKED_WAITING por finalizacion de sus objetivos", entrenador->id);
+            break;
+
+            case BLOCKED_FULL:
+                log_info(logger, "Entrenador: %d pasa a EXIT desde BLOCKED_FULL por finalizacion de sus objetivos post intercambios", entrenador->id);
+                break;
+
+            case EXECUTE:
+                log_info(logger, "Entrenador: %d pasa a EXIT desde EXECUTE por resolucion del intercambio y finalizacion de sus objetivos");
+                break;
+            default:
+                logs_error_transicion();
+            break;
+        }
+        break;
+
+        case EXECUTE:
+            log_info(logger, "Entrenador: %d pasa a EXECUTE desde READY por seleccion en cola", entrenador->id);
+            break;
+
+        default:
+            logs_error_transicion();
+            break;
+    }
+}
+
+static void logs_movimiento_entrenador(t_entrenador* entrenador){
+    log_info(logger, "Entrenador: %d se movio a la posicion (%d, %d)", entrenador->id, entrenador->posicion->x, entrenador->posicion->y);
+}
+
+static void logs_atrapar(t_entrenador* entrenador){
+    log_info(logger, "Entrenador: %d intenta capturar a %s en la posicion (%d, %d)",
+            entrenador->id, entrenador->pokemon_buscado->pokemon, entrenador->pokemon_buscado->ubicacion->x, entrenador->pokemon_buscado->ubicacion->x);
+}
+
+static void logs_intercambio(t_entrenador* entrenador,t_entrenador* otro_entrenador, t_pokemon_capturado* entregado,t_pokemon_capturado* recibido){
+    log_info(logger, "Se realizo un intercambio entre Entrenador: %d -> (%s) y Entrenador: %d -> (%s)", entrenador->id, entregado->nombre, otro_entrenador->id, recibido->nombre);
+}
+
+void logs_inicio_deteccion_deadlock(){
+    log_info(logger, "Inicio del algoritmo de deteccion de Deadlock");
+}
+
+void logs_deadlock(bool existe_deadlock){
+    log_info(logger, "Resultado: %s deadlock", existe_deadlock ? "Existe" : "No existe");
+}
+
+static void logs_error_transicion(){
+    log_error(logger, "Error en el cambio de cola de planificacion");
 }

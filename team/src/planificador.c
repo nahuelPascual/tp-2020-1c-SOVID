@@ -94,13 +94,16 @@ void planificador_encolar_ready(t_entrenador* e) {
         }
         e->info->estimado_siguiente_rafaga = estimar_proxima_rafaga(e); // recalcula con mismos datos pero con ejecucion parcial actualizada
     }
+    logs_transicion(e, READY); // FIXME deberia marcar implicit declaration (no lo veo). Se podria mejorar haciendo funciones en entrenador para cambiar el estado y que solo ahi adentro se loguee
     e->estado = READY;
     queue_push(cola_ready, e); // TODO sincronizar. Lo llaman las suscripciones (se puede sincronizar la funcion?)
     sem_post(&sem_entrenadores_planificables);
 }
 
 void planificador_verificar_deadlock_exit(t_entrenador* e) {
+    logs_inicio_deteccion_deadlock();
     if (e->estado == EXIT && list_all_satisfy(entrenador_get_all(), (void*)entrenador_cumplio_objetivos)) {
+        logs_deadlock(false);
         log_debug(default_logger, "Todos los objetivos del team fueron cumplidos!");
         // TODO cerrar proceso por objetivo global cumplido
         exit(0);
@@ -108,6 +111,7 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
 
     t_entrenador* otro_entrenador = NULL;
     if (e->estado == BLOCKED_FULL && (otro_entrenador = detectar_deadlock(e)) != NULL) {
+        logs_deadlock(true);
         log_debug(default_logger, "Se planifica al entrenador #%d hacia la posicion (%d, %d) para resolver DEADLOCK con entrenador #%d",
                 e->id, otro_entrenador->posicion->x, otro_entrenador->posicion->y, otro_entrenador->id);
         e->deadlock = otro_entrenador->deadlock = true;

@@ -10,6 +10,8 @@
 #include <semaphore.h>
 #include <commons/collections/list.h>
 #include <commons/collections/queue.h>
+#include <commons/log.h>
+#include <commons/string.h>
 #include <delibird-commons/model/mensaje.h>
 #include "pokemon.h"
 #include "sender.h"
@@ -17,6 +19,7 @@
 #include "objetivos.h"
 
 sem_t sem_post_ejecucion;
+extern t_log* logger;
 
 typedef enum {
     NEW, READY, EXECUTE, BLOCKED_IDLE, BLOCKED_WAITING, BLOCKED_FULL, EXIT
@@ -70,5 +73,9 @@ bool entrenador_cumplio_objetivos(t_entrenador*);
 bool entrenador_asignado_a(t_pokemon_mapeado*);
 void entrenador_asignar_objetivo(t_entrenador*);
 void entrenador_concretar_captura(t_entrenador* e, char* pokemon, t_coord* ubicacion);
+
+void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado);
+void logs_deadlock(bool existe_deadlock);
+void logs_inicio_deteccion_deadlock();
 
 #endif //TEAM_ENTRENADOR_H

@@ -5,6 +5,8 @@
 #include "subscripcion.h"
 
 extern t_log* default_logger;
+extern t_log* logger;
+
 
 static void procesar_appeared_pokemon_(char*, t_coord*);
 static void procesar_appeared_pokemon(t_appeared_pokemon*);
@@ -118,6 +120,8 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
 static void escuchar_a(int cliente) {
     while(ipc_hay_datos_para_recibir_de(cliente)){
         t_paquete* paquete = ipc_recibir_de(cliente);
+
+        logger_recibido(logger, paquete);
 
         pthread_t thread;
         switch(paquete->header->tipo_mensaje) {

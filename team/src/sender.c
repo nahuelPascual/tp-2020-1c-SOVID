@@ -4,10 +4,15 @@
 
 #include "sender.h"
 
+extern t_log* logger;
+
 static t_list* mensajes_esperando_respuesta;
 
 static int enviar_broker(t_paquete* p);
 static int esperar_id(int broker);
+
+static void logs_broker_reintento();
+static void logs_broker_error();
 
 void sender_init_mensajes_esperando_respuesta() {
     mensajes_esperando_respuesta = list_create();
@@ -19,9 +24,17 @@ int enviar_suscripcion(t_tipo_mensaje tipo_mensaje) {
 
     int broker = enviar_broker(p);
 
-//    while (broker == -1) {
-        // TODO retry: va a haber que hacer unos cambios, para que el hilo principal no se bloquee reintentando
-//    }
+    if(broker == -1){
+        logs_broker_reintento();
+/*
+        while (broker == -1) {
+        TODO retry: va a haber que hacer unos cambios, para que el hilo principal no se bloquee reintentando
+        if(broker != -1){
+            log_info(logger, "Reconexion con el Broker");
+        }
+    }
+*/
+}
 
     suscripcion_liberar(s);
     paquete_liberar(p);
@@ -76,6 +89,7 @@ void enviar_ack(uint32_t id_mensaje, int socket) {
     t_paquete* paquete = paquete_from_ack(ack);
 
     ipc_enviar_a(socket, paquete);
+    logger_enviado(logger, paquete);
 
     ack_liberar(ack);
     paquete_liberar(paquete);
@@ -102,12 +116,18 @@ void liberar_catch_pokemon_enviado(t_mensaje_enviado* c) {
 static int enviar_broker(t_paquete* p) {
     int broker = ipc_conectarse_a(config_team->ip_broker, config_team->puerto_broker);
     bool ok = ipc_enviar_a(broker, p);
+    logger_enviado(logger, p);
+    if(!ok){
+        logs_broker_error();
+    }
     return ok ? broker : -1;
 }
 
 static int esperar_id(int broker) {
     t_paquete* paquete = ipc_recibir_de(broker);
     t_informe_id* informe_id = paquete_to_informe_id(paquete);
+
+    logger_recibido(logger, paquete);
 
     int id = informe_id->id_mensaje;
 
@@ -116,3 +136,11 @@ static int esperar_id(int broker) {
 
     return id;
 }
+
+static void logs_broker_error(){
+    log_info(logger, "Error de comunicacion con el Broker - Operacion por Default iniciada");
+}
+
+static void logs_broker_reintento(){
+        log_info(logger, "Inicio de proceso de reintento de comunicacion con el Broker");
+    }

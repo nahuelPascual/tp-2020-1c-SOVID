@@ -12,6 +12,7 @@
 #include <delibird-commons/utils/paquete.h>
 #include <delibird-commons/model/ack.h>
 #include <delibird-commons/model/suscripcion.h>
+#include <delibird-commons/utils/logger.h>
 #include "pokemon.h"
 #include "configuration.h"
 
