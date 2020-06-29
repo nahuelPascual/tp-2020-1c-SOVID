@@ -121,6 +121,9 @@ static t_coord* parse_posicion_entrenador(char* posicion_entrenador){
 
 static t_list* parse_pokemones(char* array_pokemones){
     t_list* pokemones = list_create();
+
+    if (array_pokemones == NULL) return pokemones;
+
     char** pok_splitted = string_split(array_pokemones, "|");
     int i = 0;
     while (pok_splitted[i] != NULL) {
@@ -133,6 +136,7 @@ static t_list* parse_pokemones(char* array_pokemones){
         i++;
     }
     free(pok_splitted);
+
     return pokemones;
 }
 
