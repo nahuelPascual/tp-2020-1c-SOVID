@@ -7,6 +7,7 @@
 extern t_log* default_logger;
 
 static t_dictionary* pokemon_localizados;
+static pthread_mutex_t mx_pokemon;
 
 static t_pokemon_mapeado* new_pokemon(char* nombre, int cantidad, t_coord* posicion);
 static void liberar_lista_mapeada(void*);
@@ -15,6 +16,7 @@ static void add_pokemon_existente(t_pokemon_mapeado* this_pokemon);
 
 void init_pokemon_map() {
     pokemon_localizados = dictionary_create();
+    pthread_mutex_init(&mx_pokemon, NULL);
 }
 
 static t_pokemon_mapeado* new_pokemon(char* nombre, int cantidad, t_coord* posicion) {
@@ -40,7 +42,9 @@ t_list* pokemon_get(char* especie) {
 
 t_pokemon_mapeado* pokemon_agregar_al_mapa(char* nombre, int cantidad, t_coord* posicion) {
     t_pokemon_mapeado* this_pokemon = new_pokemon(nombre, cantidad, posicion);
-    if (!is_pokemon_conocido(nombre)) {
+
+    pthread_mutex_lock(&mx_pokemon);
+    if (!dictionary_has_key(pokemon_localizados, nombre)) {
         t_list* list = list_create();
         list_add(list, this_pokemon);
         dictionary_put(pokemon_localizados, nombre, list);
@@ -48,10 +52,13 @@ t_pokemon_mapeado* pokemon_agregar_al_mapa(char* nombre, int cantidad, t_coord* 
     } else {
         add_pokemon_existente(this_pokemon);
     }
+    pthread_mutex_unlock(&mx_pokemon);
+
     return this_pokemon;
 }
 
 void pokemon_sacar_del_mapa(char* nombre, t_coord* posicion) {
+    pthread_mutex_lock(&mx_pokemon);
     t_list* ubicaciones_pokemon = dictionary_get(pokemon_localizados, nombre);
     for (int i=0 ; i<list_size(ubicaciones_pokemon) ; i++) {
         t_pokemon_mapeado* p = (t_pokemon_mapeado*) list_get(ubicaciones_pokemon, i);
@@ -63,6 +70,7 @@ void pokemon_sacar_del_mapa(char* nombre, t_coord* posicion) {
             break;
         }
     }
+    pthread_mutex_unlock(&mx_pokemon);
 }
 
 void pokemon_liberar_mapa() {
@@ -81,7 +89,10 @@ static void liberar_pokemon_mapeado(void* e) {
 }
 
 bool is_pokemon_conocido(char* nombre) {
-    return dictionary_has_key(pokemon_localizados, nombre);
+    pthread_mutex_lock(&mx_pokemon);
+    bool b = dictionary_has_key(pokemon_localizados, nombre);
+    pthread_mutex_unlock(&mx_pokemon);
+    return b;
 }
 
 static void add_pokemon_existente(t_pokemon_mapeado* this_pokemon) {

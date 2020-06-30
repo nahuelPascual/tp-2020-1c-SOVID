@@ -10,6 +10,7 @@ const int COSTO_INTERCAMBIO = 5;
 
 static enum {FIFO, ROUND_ROBIN, SJF, SJF_CON_DESALOJO};
 static t_queue* cola_ready;
+static pthread_mutex_t mx_cola_ready;
 static sem_t sem_entrenadores_planificables;
 static int algoritmo;
 static float alpha;
@@ -24,11 +25,14 @@ static int normalizar_algoritmo_planificacion(char* algoritmo);
 static t_entrenador* elegir_entrenador();
 static bool es_SJF();
 static t_entrenador* detectar_deadlock(t_entrenador*);
+static t_entrenador* pop();
+static void push(t_entrenador*);
 
 void planificador_init() {
     sem_init(&sem_entrenadores_planificables, 0, 0);
     algoritmo = normalizar_algoritmo_planificacion(config_team->algoritmo_planificacion);
     cola_ready = queue_create();
+    pthread_mutex_init(&mx_cola_ready, NULL);
     alpha = config_team->alpha;
     planificar();
 }
@@ -98,7 +102,7 @@ void planificador_encolar_ready(t_entrenador* e) {
     }
     logs_transicion(e, READY); // FIXME deberia marcar implicit declaration (no lo veo). Se podria mejorar haciendo funciones en entrenador para cambiar el estado y que solo ahi adentro se loguee
     e->estado = READY;
-    queue_push(cola_ready, e); // TODO sincronizar. Lo llaman las suscripciones (se puede sincronizar la funcion?)
+    push(e);
     sem_post(&sem_entrenadores_planificables);
 }
 
@@ -113,6 +117,7 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
     }
 
     t_entrenador* otro_entrenador = NULL;
+    pthread_mutex_lock(&mx_entrenadores);
     if (e->estado == BLOCKED_FULL && (otro_entrenador = detectar_deadlock(e)) != NULL) {
         logs_deadlock(true);
         log_debug(default_logger, "Se planifica al entrenador #%d hacia la posicion (%d, %d) para resolver DEADLOCK con entrenador #%d",
@@ -121,17 +126,25 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
         metricas_add_deadlock();
         planificador_encolar_ready(e);
     }
+    pthread_mutex_unlock(&mx_entrenadores);
 }
 
 void planificador_admitir(t_entrenador* e) {
+    pthread_mutex_lock(&mx_entrenadores);
+    if (e->estado != BLOCKED_IDLE) {
+        pthread_mutex_unlock(&mx_entrenadores);
+        return;
+    }
     entrenador_asignar_objetivo(e);
     if(e->pokemon_buscado == NULL) {
         log_debug(default_logger, "No se replanifica al entrenador #%d porque no hay mas objetivos disponibles", e->id);
+        pthread_mutex_unlock(&mx_entrenadores);
         return;
     }
     log_debug(default_logger, "Se replanifico al entrenador #%d para capturar un %d en la posicion (%d, %d)",
             e->id, e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion->x, e->pokemon_buscado->ubicacion->y);
     planificador_encolar_ready(e);
+    pthread_mutex_unlock(&mx_entrenadores);
 }
 
 static t_entrenador* detectar_deadlock(t_entrenador* entrenador) {
@@ -184,6 +197,19 @@ static t_entrenador* detectar_deadlock(t_entrenador* entrenador) {
     return NULL;
 }
 
+static t_entrenador* pop() {
+    pthread_mutex_lock(&mx_cola_ready);
+    t_entrenador* e = queue_pop(cola_ready);
+    pthread_mutex_unlock(&mx_cola_ready);
+    return e;
+}
+
+static void push(t_entrenador* e) {
+    pthread_mutex_lock(&mx_cola_ready);
+    queue_push(cola_ready, e);
+    pthread_mutex_unlock(&mx_cola_ready);
+}
+
 static t_entrenador* planificar_FIFO() {
     t_entrenador* e = queue_peek(cola_ready);
     int remaining = entrenador_calcular_remaining(e);
@@ -192,7 +218,7 @@ static t_entrenador* planificar_FIFO() {
 }
 
 static t_entrenador* planificar_RR(int quantum) {
-    t_entrenador* entrenador = queue_pop(cola_ready);
+    t_entrenador* entrenador = pop();
     log_debug(default_logger, "Se ejecuta el entrenador #%d", entrenador->id);
     entrenador_otorgar_ciclos_ejecucion(entrenador, quantum);
     return entrenador;
@@ -211,6 +237,7 @@ static t_entrenador* planificar_SJF_con_desalojo() {
 }
 
 static t_entrenador* elegir_entrenador() {
+    pthread_mutex_lock(&mx_cola_ready);
     t_list* entrenadores = cola_ready->elements;
     float menor_estimado = 99999;
     int indice;
@@ -223,6 +250,7 @@ static t_entrenador* elegir_entrenador() {
     }
     t_entrenador* entrenador = list_remove(entrenadores, indice);
     list_add_in_index(entrenadores, 0, entrenador);
+    pthread_mutex_unlock(&mx_cola_ready);
     return entrenador;
 }
 

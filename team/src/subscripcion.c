@@ -43,19 +43,24 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
 
     t_pokemon_mapeado* objetivo = pokemon_agregar_al_mapa(nombre, 1, posicion);
 
-    if (entrenador_asignado_a(objetivo)) {
+    pthread_mutex_lock(&mx_entrenadores);
+    if (entrenador_asignado_a(nombre)) {
         log_debug(default_logger, "No se planifica %s porque ya hay una captura en proceso para esa especie", nombre);
+        pthread_mutex_unlock(&mx_entrenadores);
         return;
     }
 
     t_entrenador* entrenador = entrenador_get_libre_mas_cercano(posicion);
     if (entrenador == NULL) {
         log_debug(default_logger, "No hay ningun entrenador libre para planificar hacia (%d, %d)", posicion->x, posicion->y);
+        pthread_mutex_unlock(&mx_entrenadores);
         return;
     }
 
     entrenador->pokemon_buscado = objetivo;
     planificador_encolar_ready(entrenador);
+
+    pthread_mutex_unlock(&mx_entrenadores);
 }
 
 static void procesar_localized_pokemon(t_paquete* paquete) {

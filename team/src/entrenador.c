@@ -70,6 +70,7 @@ void entrenador_init_list(t_list* nuevos_entrenadores) {
         list_add(sem_entrenadores, sem);
     }
     sem_entrenadores = list_create();
+    pthread_mutex_init(&mx_entrenadores, NULL);
     list_iterate(entrenadores, (void*)_init_semaforos);
 }
 
@@ -149,7 +150,7 @@ void entrenador_concretar_captura(t_entrenador* e, char* pokemon, t_coord* ubica
     captura->es_objetivo = objetivo != NULL;
     list_add(e->capturados, captura);
 
-    objetivos_descontar_requeridos(e->pokemon_buscado->pokemon);
+    objetivos_capturado(e->pokemon_buscado->pokemon);
     pokemon_sacar_del_mapa(e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion);
     e->pokemon_buscado = NULL; // es el mismo puntero que el del mapa y ya se libera en la funcion de arriba
 }
@@ -197,10 +198,10 @@ void entrenador_verificar_objetivos(t_entrenador* e) {
     }
 }
 
-bool entrenador_asignado_a(t_pokemon_mapeado* pokemon) {
+bool entrenador_asignado_a(char* pokemon) {
     bool _persigue_a(void* item) {
         t_entrenador* e = (t_entrenador*) item;
-        return e->pokemon_buscado != NULL && string_equals_ignore_case(e->pokemon_buscado->pokemon, pokemon->pokemon);
+        return e->pokemon_buscado != NULL && string_equals_ignore_case(e->pokemon_buscado->pokemon, pokemon);
     }
     return list_any_satisfy(entrenadores, (void*)_persigue_a);
 }
@@ -214,7 +215,7 @@ bool entrenador_cumplio_objetivos(t_entrenador* e) {
 }
 
 void entrenador_asignar_objetivo(t_entrenador* e) {
-    t_list* objetivos = objetivos_get_especies();
+    t_list* objetivos = objetivos_get_especies_pendientes();
     t_list* objetivos_localizados = pokemon_filtrar_especies_encontradas(objetivos);
 
     bool _es_asignable(void* especie) {

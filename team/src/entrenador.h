@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <semaphore.h>
+#include <pthread.h>
 #include <commons/collections/list.h>
 #include <commons/collections/queue.h>
 #include <commons/log.h>
@@ -19,6 +20,8 @@
 #include "objetivos.h"
 
 sem_t sem_post_ejecucion;
+pthread_mutex_t mx_entrenadores;
+
 extern t_log* logger;
 
 typedef enum {
@@ -69,7 +72,7 @@ t_list* entrenador_get_bloqueados();
 t_list* entrenador_calcular_pokemon_faltantes(t_entrenador*);
 t_list* entrenador_calcular_pokemon_sobrantes(t_entrenador*);
 bool entrenador_cumplio_objetivos(t_entrenador*);
-bool entrenador_asignado_a(t_pokemon_mapeado*);
+bool entrenador_asignado_a(char* pokemon);
 void entrenador_asignar_objetivo(t_entrenador*);
 void entrenador_concretar_captura(t_entrenador* e, char* pokemon, t_coord* ubicacion);
 

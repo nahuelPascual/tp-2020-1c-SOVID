@@ -7,11 +7,11 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <pthread.h>
 #include <delibird-commons/utils/ipc.h>
 #include <delibird-commons/utils/paquete.h>
 #include <delibird-commons/model/mensaje.h>
 #include <delibird-commons/utils/logger.h>
-#include <pthread.h>
 #include "sender.h"
 #include "entrenador.h"
 #include "pokemon.h"
