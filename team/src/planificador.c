@@ -176,6 +176,7 @@ static t_entrenador* detectar_deadlock(t_entrenador* entrenador) {
         return list_any_satisfy(faltantes, (void*)_equals);
     }
 
+    t_entrenador* otro_entrenador = NULL;
     for (int i = 0 ; i < list_size(bloqueados) ; i++) {
         t_entrenador* un_bloqueado = list_get(bloqueados, i);
         t_list* faltantes_otro = entrenador_calcular_pokemon_faltantes(un_bloqueado);
@@ -184,17 +185,22 @@ static t_entrenador* detectar_deadlock(t_entrenador* entrenador) {
         t_pokemon_objetivo* entrego = (t_pokemon_objetivo*) list_find(faltantes_otro, (void*)_es_mi_sobrante);
         t_pokemon_objetivo* recibo = (t_pokemon_objetivo*) list_find(sobrantes_otro, (void*)_es_mi_faltante);
         if (entrego != NULL && recibo != NULL) {
-            t_intercambio* intercambio = malloc(sizeof(intercambio));
+            t_intercambio* intercambio = malloc(sizeof(t_intercambio));
             intercambio->entrego_pokemon = entrego->nombre;
             intercambio->recibo_pokemon = recibo->nombre;
+            intercambio->id_otro_entrenador = un_bloqueado->id;
             intercambio->ubicacion = un_bloqueado->posicion;
             intercambio->remaining_intercambio = COSTO_INTERCAMBIO;
             entrenador->intercambio = intercambio;
-            return un_bloqueado;
+            otro_entrenador = un_bloqueado;
         }
     }
 
-    return NULL;
+    free(bloqueados);
+    free(faltantes);
+    free(mis_sobrantes);
+
+    return otro_entrenador;
 }
 
 static t_entrenador* pop() {
