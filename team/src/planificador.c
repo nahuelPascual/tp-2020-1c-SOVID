@@ -100,7 +100,7 @@ void planificador_encolar_ready(t_entrenador* e) {
         }
         e->info->estimado_siguiente_rafaga = estimar_proxima_rafaga(e); // recalcula con mismos datos pero con ejecucion parcial actualizada
     }
-    logs_transicion(e, READY); // FIXME deberia marcar implicit declaration (no lo veo). Se podria mejorar haciendo funciones en entrenador para cambiar el estado y que solo ahi adentro se loguee
+    logs_transicion(e, READY);
     e->estado = READY;
     push(e);
     sem_post(&sem_entrenadores_planificables);

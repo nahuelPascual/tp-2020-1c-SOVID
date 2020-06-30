@@ -53,7 +53,7 @@ t_entrenador* entrenador_new(int id, t_list* objetivos, t_list* capturados, t_co
     entrenador->intercambio = NULL;
     entrenador->info = create_info();
 
-    logs_transicion(entrenador, NEW); // FIXME ojo implicit declaration
+    logs_transicion(entrenador, NEW);
 
     return entrenador;
 }
@@ -409,7 +409,7 @@ static bool queda_quantum(int id) {
 }
 
 static void log_algoritmo(t_entrenador* entrenador){
-    if (string_equals_ignore_case(config_team->algoritmo_planificacion, "SJF-CD")) { // TODO revisar si esta bien el nombre del SJF-CD y ver de evitar el if con un op ternario
+    if (string_equals_ignore_case(config_team->algoritmo_planificacion, "SJF-CD")) {
         log_info(logger, "Entrenador: %d pasa a READY desde EXECUTE por DESALOJO", entrenador->id);
     }
     else{

@@ -5,6 +5,7 @@
 #ifndef TEAM_POKEMON_H
 #define TEAM_POKEMON_H
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <commons/collections/dictionary.h>
 #include <commons/collections/list.h>
