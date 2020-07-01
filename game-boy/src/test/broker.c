@@ -7,7 +7,30 @@
 
 #include "broker.h"
 
-void enviar_new_pokemon(int cliente) {
+void _esperar_informe_id_y_morir(int broker) {
+    printf("################################################\n");
+    printf("Recibiendo id correspondiente al mensaje enviado\n");
+    printf("################################################\n\n");
+
+    while(ipc_hay_datos_para_recibir_de(broker)) {
+        t_paquete* paquete_respuesta = ipc_recibir_de(broker);
+        t_informe_id* informe_id = paquete_to_informe_id(paquete_respuesta);
+
+        printf("tipo_paquete: %d\n", paquete_respuesta->header->tipo_paquete);
+        printf("tipo_mensaje: %d\n", paquete_respuesta->header->tipo_mensaje);
+        printf("id_mensaje: %d\n", paquete_respuesta->header->id_mensaje);
+        printf("correlation_id_mensaje: %d\n", paquete_respuesta->header->correlation_id_mensaje);
+        printf("payload_size: %d\n", paquete_respuesta->header->payload_size);
+        printf("id_mensaje: %d\n\n", informe_id->id_mensaje);
+
+        paquete_liberar(paquete_respuesta);
+        informe_id_liberar(informe_id);
+
+        ipc_cerrar(broker);
+    }
+}
+
+void enviar_new_pokemon(int broker) {
     printf("testing new_pokemon\n");
     char* name = "Pikachu";
 
@@ -24,13 +47,15 @@ void enviar_new_pokemon(int cliente) {
     printf("posicion: (%d,%d)\n", pokemon->posicion->x, pokemon->posicion->y);
     printf("cantidad: %d\n\n", pokemon->cantidad);
 
-    ipc_enviar_a(cliente, paquete);
+    ipc_enviar_a(broker, paquete);
+
+    _esperar_informe_id_y_morir(broker);
 
     mensaje_liberar_new_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
-void enviar_localized_pokemon(int cliente) {
+void enviar_localized_pokemon(int broker) {
     printf("testing localized_pokemon\n");
     char* name = "Pikachu";
 
@@ -54,13 +79,15 @@ void enviar_localized_pokemon(int cliente) {
     }
     printf("\n\n");
 
-    ipc_enviar_a(cliente, paquete);
+    ipc_enviar_a(broker, paquete);
+
+    _esperar_informe_id_y_morir(broker);
 
     mensaje_liberar_localized_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
-void enviar_get_pokemon(int cliente) {
+void enviar_get_pokemon(int broker) {
     printf("testing get_pokemon\n");
     char* name = "Pikachu";
 
@@ -75,13 +102,15 @@ void enviar_get_pokemon(int cliente) {
     printf("nombre_len: %d\n", pokemon->nombre_len);
     printf("nombre: %s\n\n", pokemon->nombre);
 
-    ipc_enviar_a(cliente, paquete);
+    ipc_enviar_a(broker, paquete);
+
+    _esperar_informe_id_y_morir(broker);
 
     mensaje_liberar_get_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
-void enviar_appeared_pokemon(int cliente) {
+void enviar_appeared_pokemon(int broker) {
     printf("testing appeared_pokemon\n");
     char* name = "Pikachu";
 
@@ -97,13 +126,15 @@ void enviar_appeared_pokemon(int cliente) {
     printf("nombre: %s\n", pokemon->nombre);
     printf("posicion: (%d,%d)\n\n", pokemon->posicion->x, pokemon->posicion->y);
 
-    ipc_enviar_a(cliente, paquete);
+    ipc_enviar_a(broker, paquete);
+
+    _esperar_informe_id_y_morir(broker);
 
     mensaje_liberar_appeared_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
-void enviar_catch_pokemon(int cliente) {
+void enviar_catch_pokemon(int broker) {
     printf("testing catch_pokemon\n");
     char* name = "Pikachu";
 
@@ -119,13 +150,15 @@ void enviar_catch_pokemon(int cliente) {
     printf("nombre: %s\n", pokemon->nombre);
     printf("posicion: (%d,%d)\n\n", pokemon->posicion->x, pokemon->posicion->y);
 
-    ipc_enviar_a(cliente, paquete);
+    ipc_enviar_a(broker, paquete);
+
+    _esperar_informe_id_y_morir(broker);
 
     mensaje_liberar_catch_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
-void enviar_caught_pokemon(int cliente) {
+void enviar_caught_pokemon(int broker) {
     printf("testing caught_pokemon\n");
     t_caught_pokemon* pokemon = mensaje_crear_caught_pokemon(1);
 
@@ -137,13 +170,15 @@ void enviar_caught_pokemon(int cliente) {
     printf("payload_size: %d\n", paquete->header->payload_size);
     printf("is_caught: %s\n\n", pokemon->is_caught ? "true" : "false");
 
-    ipc_enviar_a(cliente, paquete);
+    ipc_enviar_a(broker, paquete);
+
+    _esperar_informe_id_y_morir(broker);
 
     mensaje_liberar_caught_pokemon(pokemon);
     paquete_liberar(paquete);
 }
 
-void enviar_informe_id(int conn) {
+void enviar_informe_id(int broker) {
     printf("testing informe_id\n");
     t_informe_id* informe_id = informe_id_crear(1);
 
@@ -155,15 +190,15 @@ void enviar_informe_id(int conn) {
     printf("payload_size: %d\n", paquete->header->payload_size);
     printf("id_mensaje: %d\n\n", informe_id->id_mensaje);
 
-    ipc_enviar_a(conn, paquete);
+    ipc_enviar_a(broker, paquete);
 
     informe_id_liberar(informe_id);
     paquete_liberar(paquete);
 }
 
-void _responder_ack(int cliente, uint32_t id_mensaje) {
+void enviar_ack(int broker, uint32_t id_suscriptor, uint32_t id_mensaje) {
     printf("testing ack\n");
-    t_ack* ack = ack_crear(id_mensaje);
+    t_ack* ack = ack_crear(id_suscriptor, id_mensaje);
 
     t_paquete* paquete = paquete_from_ack(ack);
     printf("tipo_paquete: %d\n", paquete->header->tipo_paquete);
@@ -171,17 +206,18 @@ void _responder_ack(int cliente, uint32_t id_mensaje) {
     printf("id_mensaje: %d\n", paquete->header->id_mensaje);
     printf("correlation_id_mensaje: %d\n", paquete->header->correlation_id_mensaje);
     printf("payload_size: %d\n", paquete->header->payload_size);
+    printf("id_suscriptor: %d\n", ack->id_suscriptor);
     printf("id_mensaje: %d\n\n", ack->id_mensaje);
 
-    ipc_enviar_a(cliente, paquete);
+    ipc_enviar_a(broker, paquete);
 
-    ack_liberar(ack);
     paquete_liberar(paquete);
+    ack_liberar(ack);
 }
 
-void enviar_suscripcion(int cliente, t_tipo_mensaje tipo_mensaje) {
+void enviar_suscripcion(int broker, t_tipo_mensaje tipo_mensaje, uint32_t id_suscriptor) {
     printf("testing suscripcion\n");
-    t_suscripcion* suscripcion = suscripcion_crear(tipo_mensaje, 0);
+    t_suscripcion* suscripcion = suscripcion_crear(tipo_mensaje, id_suscriptor, 0);
     t_paquete* paquete = paquete_from_suscripcion(suscripcion);
     printf("tipo_paquete: %d\n", paquete->header->tipo_paquete);
     printf("tipo_mensaje: %d\n", paquete->header->tipo_mensaje);
@@ -189,17 +225,18 @@ void enviar_suscripcion(int cliente, t_tipo_mensaje tipo_mensaje) {
     printf("correlation_id_mensaje: %d\n", paquete->header->correlation_id_mensaje);
     printf("payload_size: %d\n", paquete->header->payload_size);
     printf("tipo_mensaje: %d\n", suscripcion->tipo_mensaje);
+    printf("id_suscriptor: %d\n", suscripcion->id_suscriptor);
     printf("tiempo: %d\n\n", suscripcion->tiempo);
 
-    ipc_enviar_a(cliente, paquete);
+    ipc_enviar_a(broker, paquete);
 
     printf("########################################\n");
     printf("Recibiendo mensajes de la cola suscripta\n");
     printf("########################################\n\n");
 
-    while(ipc_hay_datos_para_recibir_de(cliente)) {
+    while(ipc_hay_datos_para_recibir_de(broker)) {
 
-        t_paquete* paquete_respuesta = ipc_recibir_de(cliente);
+        t_paquete* paquete_respuesta = ipc_recibir_de(broker);
 
         switch(paquete_respuesta->header->tipo_mensaje) {
         case NEW_POKEMON:
@@ -225,7 +262,8 @@ void enviar_suscripcion(int cliente, t_tipo_mensaje tipo_mensaje) {
             break;
         }
 
-        _responder_ack(cliente, paquete_respuesta->header->id_mensaje);
+        //Prueba respondiendo por el mismo socket -> requiere while en _gestionar_a
+        enviar_ack(broker, id_suscriptor, paquete_respuesta->header->id_mensaje);
     }
 
     suscripcion_liberar(suscripcion);
@@ -233,37 +271,36 @@ void enviar_suscripcion(int cliente, t_tipo_mensaje tipo_mensaje) {
 }
 
 void test_broker(char**argv, char* ip, char* puerto) {
-    int cliente = ipc_conectarse_a(ip, puerto);
+    int broker = ipc_conectarse_a(ip, puerto);
 
     if(string_equals_ignore_case(argv[1], "new")) {
-        enviar_new_pokemon(cliente);
-        ipc_cerrar(cliente);
+        enviar_new_pokemon(broker);
     }
     else if(string_equals_ignore_case(argv[1], "localized")) {
-        enviar_localized_pokemon(cliente);
-        ipc_cerrar(cliente);
+        enviar_localized_pokemon(broker);
     }
     else if(string_equals_ignore_case(argv[1], "get")) {
-        enviar_get_pokemon(cliente);
-        ipc_cerrar(cliente);
+        enviar_get_pokemon(broker);
     }
     else if(string_equals_ignore_case(argv[1], "appeared")) {
-        enviar_appeared_pokemon(cliente);
-        ipc_cerrar(cliente);
+        enviar_appeared_pokemon(broker);
     }
     else if(string_equals_ignore_case(argv[1], "catch")) {
-        enviar_catch_pokemon(cliente);
-        ipc_cerrar(cliente);
+        enviar_catch_pokemon(broker);
     }
     else if(string_equals_ignore_case(argv[1], "caught")) {
-        enviar_caught_pokemon(cliente);
-        ipc_cerrar(cliente);
+        enviar_caught_pokemon(broker);
     }
     else if(string_equals_ignore_case(argv[1], "informe_id")) {
-        enviar_informe_id(cliente);
-        ipc_cerrar(cliente);
+        enviar_informe_id(broker);
+        ipc_cerrar(broker);
+    }
+    //Prueba respondiendo por otro socket -> requiere if en _gestionar_a
+    else if(string_equals_ignore_case(argv[1], "ack")) {
+        enviar_ack(broker, atoi(argv[2]), atoi(argv[3]));
+        ipc_cerrar(broker);
     }
     else if(string_equals_ignore_case(argv[1], "suscripcion")) {
-        enviar_suscripcion(cliente, atoi(argv[2]));
+        enviar_suscripcion(broker, atoi(argv[2]), atoi(argv[3]));
     }
 }

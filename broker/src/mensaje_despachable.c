@@ -31,8 +31,8 @@ t_mensaje_despachable* mensaje_despachable_from_paquete(t_paquete* paquete, t_me
 
   mensaje_despachable->particion_asociada = particion;
 
-  mensaje_despachable->suscriptores_a_los_que_fue_enviado = list_create();
-  mensaje_despachable->suscriptores_que_lo_recibieron = list_create();
+  mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado = list_create();
+  mensaje_despachable->ids_suscriptores_que_lo_recibieron = list_create();
 
   pthread_mutex_init(&mensaje_despachable->mutex_ack, NULL);
 
@@ -54,28 +54,46 @@ t_paquete* mensaje_despachable_to_paquete(t_mensaje_despachable* mensaje_despach
 
 void mensaje_despachable_liberar(t_mensaje_despachable* mensaje_despachable) {
     memoria_liberar_particion(mensaje_despachable->particion_asociada);
-    list_destroy(mensaje_despachable->suscriptores_a_los_que_fue_enviado);
-    list_destroy(mensaje_despachable->suscriptores_que_lo_recibieron);
+    list_destroy(mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado);
+    list_destroy(mensaje_despachable->ids_suscriptores_que_lo_recibieron);
     pthread_mutex_destroy(&mensaje_despachable->mutex_ack);
     free(mensaje_despachable);
 }
 
-bool mensaje_despachable_tiene_todos_los_acks(t_mensaje_despachable* mensaje_despachable) {
-    bool igualigual(int un_suscriptor, int otro_suscriptor) {
-        return un_suscriptor == otro_suscriptor;
-    }
-
-    return list_equals(mensaje_despachable->suscriptores_a_los_que_fue_enviado,
-                       mensaje_despachable->suscriptores_que_lo_recibieron,
-                       (void*) igualigual);
+void mensaje_despachable_add_suscriptor_enviado(t_mensaje_despachable* mensaje_despachable, t_suscriptor* suscriptor) {
+    list_add(mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado, (void*) suscriptor->id);
 }
 
-t_mensaje_despachable* mensaje_despachable_find_by_id_in(t_list* lista, uint32_t id) {
-    bool _is_the_one(t_mensaje_despachable* mensaje_despachable) {
-        return mensaje_despachable->id == id;
+void mensaje_despachable_add_suscriptor_recibido(t_mensaje_despachable* mensaje_despachable, t_ack* ack) {
+    pthread_mutex_lock(&mensaje_despachable->mutex_ack);
+    list_add(mensaje_despachable->ids_suscriptores_que_lo_recibieron, (void*) ack->id_suscriptor);
+    pthread_mutex_unlock(&mensaje_despachable->mutex_ack);
+}
+
+bool mensaje_despachable_tiene_todos_los_acks(t_mensaje_despachable* mensaje_despachable) {
+    bool _igualigual(uint32_t id_un_suscriptor, uint32_t id_otro_suscriptor) {
+        return id_un_suscriptor == id_otro_suscriptor;
     }
 
-    return list_find(lista, (void*) _is_the_one);
+    return list_equals(mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado,
+                       mensaje_despachable->ids_suscriptores_que_lo_recibieron,
+                       (void*) _igualigual);
+}
+
+bool mensaje_despachable_fue_recibido_por(t_mensaje_despachable* mensaje_despachable, t_suscriptor* suscriptor) {
+    bool _is_the_one(uint32_t id_suscriptor) {
+        return id_suscriptor == suscriptor->id;
+    }
+
+    pthread_mutex_lock(&mensaje_despachable->mutex_ack);
+    bool recibido = list_any_satisfy(mensaje_despachable->ids_suscriptores_que_lo_recibieron, (void*) _is_the_one);
+    pthread_mutex_unlock(&mensaje_despachable->mutex_ack);
+
+    return recibido;
+}
+
+bool mensaje_despachable_es_misma_respuesta_que(t_mensaje_despachable* mensaje_despachable, t_paquete* paquete) {
+    return mensaje_despachable->correlation_id == paquete->header->correlation_id_mensaje;
 }
 
 void mensaje_despachable_remove_by_id_from(t_list* lista, uint32_t id) {

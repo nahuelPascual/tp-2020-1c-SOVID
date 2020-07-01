@@ -12,10 +12,11 @@
 #include <stdint.h>
 
 typedef struct {
+    uint32_t id_suscriptor;
     uint32_t id_mensaje;
 } t_ack;
 
-t_ack* ack_crear(uint32_t id_mensaje);
+t_ack* ack_crear(uint32_t id_suscriptor, uint32_t id_mensaje);
 
 void ack_liberar(t_ack* ack);
 

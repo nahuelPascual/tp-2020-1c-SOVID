@@ -7,65 +7,14 @@
 
 #include "mensajeria.h"
 
-void _inicializar_buzon() {
-    buzon = malloc(sizeof(t_buzon));
-    buzon->diccionario_de_colas = cola_crear_diccionario();
-    buzon->memoria = memoria_crear(0, 1024, FIRST_FIT);
-}
-
-void _inicializar_semaforos() {
-    pthread_mutex_init(&mutex_pendientes_de_ack, NULL);
-    pthread_mutex_init(&mutex_id_mensaje, NULL);
-}
-
-void _informar_id_mensaje_a(int cliente, int id_mensaje) {
-    t_informe_id* informe_id = informe_id_crear(id_mensaje);
-    t_paquete* paquete = paquete_from_informe_id(informe_id);
-    ipc_enviar_a(cliente, paquete);
-    paquete_liberar(paquete);
-    informe_id_liberar(informe_id);
-}
-
-bool es_mensaje_redundante(t_paquete* paquete, t_cola* cola) {
-    if(paquete_mensaje_es_respuesta(paquete)) {
-        bool _comparador(uint32_t* un_elemento) {
-            return paquete->header->correlation_id_mensaje == *un_elemento;
-        }
-        pthread_mutex_lock(&cola->mutex_correlativos);
-        bool ya_fue_recibido = list_any_satisfy(cola->correlativos_recibidos, (void*) _comparador);
-        if(!ya_fue_recibido) {
-            list_add(cola->correlativos_recibidos, &paquete->header->correlation_id_mensaje);
-        }
-        pthread_mutex_unlock(&cola->mutex_correlativos);
-        return ya_fue_recibido;
-    }
-    return false;
-}
-
-t_cola* mensajeria_get_cola(t_tipo_mensaje tipo_mensaje) {
-    return dictionary_get(buzon->diccionario_de_colas, string_itoa(tipo_mensaje));
-}
-
-void _mensajeria_almacenar_paquete(t_paquete* paquete, t_cola* cola) {
-
-    t_mensaje_despachable* mensaje_despachable = mensaje_despachable_from_paquete(paquete, buzon->memoria);
-
-    memoria_dividir_particion_si_es_mas_grande_que(buzon->memoria, mensaje_despachable->particion_asociada, mensaje_despachable->size);
-
-    memoria_asignar_paquete_a_la_particion(buzon->memoria, paquete, mensaje_despachable->particion_asociada);
-
-    cola_push_mensaje_despachable(cola, mensaje_despachable);
-}
-
-
 void _procesar_paquete_de(t_paquete* paquete, int cliente) {
     switch(paquete->header->tipo_paquete) {
     case SUSCRIPCION: {
         t_suscripcion* suscripcion = paquete_to_suscripcion(paquete);
 
-        t_cola* cola = mensajeria_get_cola(suscripcion->tipo_mensaje);
+        t_suscriptor* suscriptor = suscriptor_crear(suscripcion->id_suscriptor, suscripcion->tipo_mensaje, cliente);
 
-        cola_add_suscriptor(cola, cliente);
+        buzon_registrar_suscriptor(buzon, suscriptor);
 
         suscripcion_liberar(suscripcion);
 
@@ -74,39 +23,17 @@ void _procesar_paquete_de(t_paquete* paquete, int cliente) {
     case ACK: {
         t_ack* ack = paquete_to_ack(paquete);
 
-        pthread_mutex_lock(&mutex_pendientes_de_ack);
-        t_mensaje_despachable* mensaje_despachable = mensaje_despachable_find_by_id_in(mensajes_pendientes_de_ack, ack->id_mensaje);
-        pthread_mutex_unlock(&mutex_pendientes_de_ack);
-
-        pthread_mutex_lock(&mensaje_despachable->mutex_ack);
-        list_add(mensaje_despachable->suscriptores_que_lo_recibieron, (void*) cliente);
-        bool mensaje_tiene_todos_los_acks = mensaje_despachable_tiene_todos_los_acks(mensaje_despachable);
-        pthread_mutex_lock(&mensaje_despachable->mutex_ack);
-
-        if(mensaje_tiene_todos_los_acks) {
-            pthread_mutex_lock(&mutex_pendientes_de_ack);
-            mensaje_despachable_remove_by_id_from(mensajes_pendientes_de_ack, mensaje_despachable->id);
-            pthread_mutex_unlock(&mutex_pendientes_de_ack);
-
-            mensaje_despachable_liberar(mensaje_despachable);
-        }
+        buzon_recibir_ack(buzon, ack);
 
         ack_liberar(ack);
 
         break;
     }
     case MENSAJE: {
-        t_cola* cola = mensajeria_get_cola(paquete->header->tipo_mensaje);
+        bool almacenado = buzon_almacenar_mensaje(buzon, paquete);
 
-        if(!es_mensaje_redundante(paquete, cola)) {
-            pthread_mutex_lock(&mutex_id_mensaje);
-            paquete->header->id_mensaje = id_mensaje++;
-            pthread_mutex_unlock(&mutex_id_mensaje);
-
-            _informar_id_mensaje_a(cliente, paquete->header->id_mensaje);
-
-            _mensajeria_almacenar_paquete(paquete, cola);
-        }
+        if(almacenado)
+            buzon_informar_id_mensaje_a(paquete->header->id_mensaje, cliente);
 
         break;
     }
@@ -125,14 +52,7 @@ void _gestionar_a(int cliente) {
     }
 }
 
-void mensajeria_inicializar() {
-    _inicializar_buzon();
-    _inicializar_semaforos();
-    mensajes_pendientes_de_ack = list_create();
-    id_mensaje = 1;
-}
-
-void mensajeria_gestionar_clientes() {
+void _gestionar_clientes() {
     int broker = ipc_escuchar_en("127.0.0.1", "8081");
 
     while(1) {
@@ -143,19 +63,30 @@ void mensajeria_gestionar_clientes() {
     }
 }
 
-void mensajeria_despachar_mensajes_de(t_tipo_mensaje tipo_mensaje) {
-    t_cola* cola = mensajeria_get_cola(tipo_mensaje);
-
+void _despachar_mensajes_de(t_cola* cola) {
     while(1) {
-        t_mensaje_despachable* mensaje_despachable = cola_pop_mensaje_despachable(cola);
-
-        cola_despachar_mensaje_a_suscriptores(
-                cola,
-                mensaje_despachable,
-                mensaje_despachable_to_paquete(mensaje_despachable, buzon->memoria));
-
-        pthread_mutex_lock(&mutex_pendientes_de_ack);
-        list_add(mensajes_pendientes_de_ack, mensaje_despachable);
-        pthread_mutex_unlock(&mutex_pendientes_de_ack);
+        buzon_despachar_mensaje_de(buzon, cola);
     }
+}
+
+void mensajeria_inicializar() {
+    buzon = buzon_crear();
+}
+
+void mensajeria_despachar_mensajes() {
+    void _despachar_mensajes(char* key, t_cola* cola) {
+        pthread_t gestor_de_una_cola;
+
+        pthread_create(&gestor_de_una_cola, NULL, (void*) _despachar_mensajes_de, (void*) cola);
+        pthread_detach(gestor_de_una_cola);
+    }
+
+    dictionary_iterator(buzon->administrador_colas->colas, (void*) _despachar_mensajes);
+}
+
+void mensajeria_gestionar_clientes() {
+    pthread_t gestor_de_clientes;
+
+    pthread_create(&gestor_de_clientes, NULL, (void*) _gestionar_clientes, NULL);
+    pthread_join(gestor_de_clientes, NULL);
 }
