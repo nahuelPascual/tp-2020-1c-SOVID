@@ -21,6 +21,7 @@ void metricas_add_cambio_contexto() {
 
 void metricas_calcular() {
     t_metricas* metricas = malloc(sizeof(t_metricas));
+    metricas->ciclos_cpu_totales = 0;
     metricas->ciclos_entrenador = dictionary_create();
 
     void _calculate(void* entrenador) {

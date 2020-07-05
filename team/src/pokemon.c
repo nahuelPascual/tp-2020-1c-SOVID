@@ -98,17 +98,20 @@ bool is_pokemon_conocido(char* nombre) {
 static void add_pokemon_existente(t_pokemon_mapeado* this_pokemon) {
     t_list* l = (t_list*) dictionary_get(pokemon_localizados, this_pokemon->pokemon);
     bool found = false;
+    int cantidad = 0;
     for (int i=0 ; i<list_size(l) ; i++) {
         t_pokemon_mapeado* p = (t_pokemon_mapeado*) list_get(l, i);
         if (p->ubicacion->x == this_pokemon->ubicacion->x && p->ubicacion->y == this_pokemon->ubicacion->y) {
             found = true;
             p->cantidad++;
+            cantidad = p->cantidad;
             break;
         }
     }
     if (!found) {
         list_add(l, this_pokemon);
+        cantidad = this_pokemon->cantidad;
     }
     log_debug(default_logger, "Se agrego un %s en (%d, %d). Ahora hay un total de %d en esa posicion",
-            this_pokemon->pokemon, this_pokemon->ubicacion->x, this_pokemon->ubicacion->y, this_pokemon->cantidad);
+        this_pokemon->pokemon, this_pokemon->ubicacion->x, this_pokemon->ubicacion->y, cantidad);
 }

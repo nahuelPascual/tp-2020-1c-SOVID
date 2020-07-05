@@ -126,6 +126,9 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
         metricas_add_deadlock();
         planificador_encolar_ready(e);
     }
+    else{
+        logs_deadlock(false);
+    }
     pthread_mutex_unlock(&mx_entrenadores);
 }
 
@@ -141,7 +144,7 @@ void planificador_admitir(t_entrenador* e) {
         pthread_mutex_unlock(&mx_entrenadores);
         return;
     }
-    log_debug(default_logger, "Se replanifico al entrenador #%d para capturar un %d en la posicion (%d, %d)",
+    log_debug(default_logger, "Se replanifico al entrenador #%d para capturar un %s en la posicion (%d, %d)",
             e->id, e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion->x, e->pokemon_buscado->ubicacion->y);
     planificador_encolar_ready(e);
     pthread_mutex_unlock(&mx_entrenadores);

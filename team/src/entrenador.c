@@ -123,8 +123,8 @@ void entrenador_execute(t_entrenador* e) {
             logs_transicion(e, BLOCKED_WAITING);
             e->estado = BLOCKED_WAITING;
             log_debug(default_logger, "Entrenador #%d paso a estado BLOCKED_WAITING", e->id);
-            bool enviado = enviar_catch_pokemon(e->id, e->pokemon_buscado);
             logs_atrapar(e);
+            bool enviado = enviar_catch_pokemon(e->id, e->pokemon_buscado);
             if (!enviado) {
                 log_debug(default_logger, "Entrenador #%d capturo automaticamente a %s", e->id, e->pokemon_buscado->pokemon);
                 entrenador_concretar_captura(e, e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion);
@@ -437,6 +437,10 @@ void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado){
                 log_info(logger, "Entrenador: %d pasa a READY desde BLOCKED_IDLE por aparicion de nuevo objetivo", entrenador->id);
                 break;
 
+            case BLOCKED_FULL:
+                log_info(logger, "Entrenador: %d pasa a READY desde BLOCKED_FULL por resolucion de Deadlock", entrenador->id);
+                break;
+
             default:
                 logs_error_transicion();
                 break;
@@ -490,7 +494,7 @@ void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado){
                 break;
 
             case EXECUTE:
-                log_info(logger, "Entrenador: %d pasa a EXIT desde EXECUTE por resolucion del intercambio y finalizacion de sus objetivos");
+                log_info(logger, "Entrenador: %d pasa a EXIT desde EXECUTE por resolucion del intercambio y finalizacion de sus objetivos", entrenador->id);
                 break;
             default:
                 logs_error_transicion();
