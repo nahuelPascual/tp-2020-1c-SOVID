@@ -22,6 +22,7 @@ static void realizar_intercambio(t_entrenador*);
 static bool queda_quantum(int id);
 static t_pokemon_mapeado* encontrar_pokemon_cercano(t_entrenador*, t_list*);
 
+static void log_estado_objetivos(t_entrenador*);
 static void log_algoritmo(t_entrenador* entrenador);
 static void logs_movimiento_entrenador(t_entrenador* entrenador);
 static void logs_atrapar(t_entrenador* entrenador);
@@ -153,6 +154,8 @@ void entrenador_concretar_captura(t_entrenador* e, char* pokemon, t_coord* ubica
     objetivos_capturado(e->pokemon_buscado->pokemon);
     pokemon_sacar_del_mapa(e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion);
     e->pokemon_buscado = NULL; // es el mismo puntero que el del mapa y ya se libera en la funcion de arriba
+
+    log_estado_objetivos(e);
 }
 
 t_entrenador* entrenador_get(int id) {
@@ -312,6 +315,9 @@ static void realizar_intercambio(t_entrenador* entrenador) {
     logs_intercambio(entrenador, otro_entrenador, entrego, recibo);
     log_debug(default_logger, "Se realizo un intercambio entre entrenador #%d (%s) y entrenador #%d (%s)",
             entrenador->id, entrego->nombre, otro_entrenador->id, recibo->nombre);
+
+    log_estado_objetivos(entrenador);
+    log_estado_objetivos(otro_entrenador);
 }
 
 t_list* entrenador_calcular_pokemon_faltantes(t_entrenador* e) {
@@ -535,4 +541,22 @@ void logs_deadlock(bool existe_deadlock){
 
 static void logs_error_transicion(){
     log_error(logger, "Error en el cambio de cola de planificacion");
+}
+
+static void log_estado_objetivos(t_entrenador* e) {
+    char* str = string_new();
+    void _concat_nombres(void* pokemon) {
+        if (string_length(str) > 0) {
+            string_append(&str, ", ");
+        }
+        string_append(&str, ((t_pokemon_objetivo*)pokemon)->nombre);
+    }
+    list_iterate(e->objetivos, (void*)_concat_nombres);
+    char* objetivos = str;
+    str = string_new();
+    list_iterate(e->capturados, (void*)_concat_nombres);
+    char* capturas = str;
+    log_debug(default_logger, "Entrenador #%d\n\tObjetivos: [%s]\n\tCapturas: [%s]", e->id, objetivos, capturas);
+    free(objetivos);
+    free(capturas);
 }
