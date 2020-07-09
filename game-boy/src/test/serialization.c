@@ -4,7 +4,7 @@
 
 #include "serialization.h"
 
-extern t_log* logger;
+t_log* logger;
 
 void iniciar_tests(){
 

@@ -17,13 +17,14 @@
 #include "objetivos.h"
 #include "entrenador.h"
 #include "planificador.h"
+#include "delibird-commons/model/suscripcion.h"
 
 t_log* logger;
 t_log* default_logger;
 
 void crear_hilos_entrenador();
-void crear_hilos_suscriptor();
-void crear_gameboy_listener();
+t_listener_config* crear_hilos_suscriptor();
+t_listener_config* crear_gameboy_listener();
 
 int main(int argc, char **argv) {
     config_team_init();
@@ -31,10 +32,8 @@ int main(int argc, char **argv) {
 
     init_pokemon_map();
     crear_hilos_entrenador();
-
-    crear_hilos_suscriptor();
-    crear_gameboy_listener();
-
+    t_listener_config* suscriptor_config = crear_hilos_suscriptor();
+    t_listener_config* gameboy_config = crear_gameboy_listener();
     // se envia un get_pokemon por cada especie de pokemon requerida
     dictionary_iterator(objetivos_globales, (void*)enviar_get_pokemon);
 
@@ -43,6 +42,8 @@ int main(int argc, char **argv) {
     liberar_config_team();
     log_destroy(default_logger);
     log_destroy(logger);
+    free(suscriptor_config);
+    free(gameboy_config);
   
     return EXIT_SUCCESS;
 }
@@ -58,15 +59,24 @@ void crear_hilos_entrenador() {
     list_iterate(entrenador_get_all(), (void*)_crear_hilo);
 }
 
-void crear_hilos_suscriptor() {
-    suscribirse_a(LOCALIZED_POKEMON);
-    suscribirse_a(APPEARED_POKEMON);
-    suscribirse_a(CAUGHT_POKEMON);
+t_listener_config* crear_hilos_suscriptor() {
+    t_listener_config* config = malloc(sizeof(t_listener_config));
+    config->ip = config_team->ip_broker;
+    config->puerto = config_team->puerto_broker;
+    config->handler = escuchar_a;
+
+    ipc_suscribirse_a(LOCALIZED_POKEMON, config_team->id, tiempo_conexion_default, config);
+    ipc_suscribirse_a(APPEARED_POKEMON, config_team->id, tiempo_conexion_default, config);
+    ipc_suscribirse_a(CAUGHT_POKEMON, config_team->id, tiempo_conexion_default, config);
+    return config;
 }
 
-void crear_gameboy_listener() {
-    pthread_t gameboyListener;
-    log_debug(default_logger, "Abriendo conexion para escuchar al gameboy");
-    pthread_create(&gameboyListener, NULL, (void*)escuchar_gameboy, NULL);
-    pthread_detach(gameboyListener);
+t_listener_config* crear_gameboy_listener(){
+    t_listener_config* config = malloc(sizeof(t_listener_config));
+    config->ip = config_team->ip_team;
+    config->puerto = config_team->puerto_team;
+    config->handler = escuchar_a;
+
+    ipc_crear_gameboy_listener(config);
+    return config;
 }

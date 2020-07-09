@@ -4,6 +4,12 @@
 
 #include "ipc.h"
 
+static void ipc_escuchar_gameboy(t_listener_config*);
+static void logs_broker_reintento();
+static void logs_broker_error();
+
+extern t_log* logger;
+
 int ipc_escuchar_en(char* ip, char* puerto) {
     int socket_servidor;
 
@@ -96,7 +102,7 @@ int ipc_conectarse_a(char *ip, char* puerto) {
     int socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
 
     if(connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) == -1)
-        printf("error");
+        printf("error conectando al socket\n");
 
     freeaddrinfo(server_info);
 
@@ -105,4 +111,78 @@ int ipc_conectarse_a(char *ip, char* puerto) {
 
 void ipc_cerrar(int socket) {
     close(socket);
+}
+
+void ipc_crear_gameboy_listener(t_listener_config* config) {
+    pthread_t gameboyListener;
+    pthread_create(&gameboyListener, NULL, (void*)ipc_escuchar_gameboy, config);
+    pthread_detach(gameboyListener);
+}
+
+int ipc_enviar_suscripcion(t_tipo_mensaje tipo_mensaje, uint32_t id_suscriptor, uint32_t tiempo_conexion, t_listener_config* config) {
+    t_suscripcion* s = suscripcion_crear(tipo_mensaje, id_suscriptor, tiempo_conexion);
+    t_paquete* p = paquete_from_suscripcion(s);
+
+    int broker = ipc_enviar_broker(p, config->ip, config->puerto);
+
+    if(broker == -1){
+       logs_broker_reintento();
+    /*
+       while (broker == -1) {
+       TODO retry: va a haber que hacer unos cambios, para que el hilo principal no se bloquee reintentando
+       if(broker != -1){
+           log_info(logger, "Reconexion con el Broker");
+       }
+    }
+    */
+    }
+    suscripcion_liberar(s);
+    paquete_liberar(p);
+
+    return broker;
+}
+
+void ipc_suscribirse_a(t_tipo_mensaje tipo_mensaje, uint32_t id_suscriptor, uint32_t tiempo_conexion, t_listener_config* config) {
+    pthread_t thread;
+    int broker = ipc_enviar_suscripcion(tipo_mensaje, id_suscriptor, tiempo_conexion, config);
+    pthread_create(&thread, NULL, (void*)config->handler, (void*)broker);
+    pthread_detach(thread);
+}
+
+int ipc_enviar_broker(t_paquete* p, char* ip, char* puerto) {
+    int broker = ipc_conectarse_a(ip, puerto);
+    bool ok = ipc_enviar_a(broker, p);
+    logger_enviado(logger, p);
+    if(!ok){
+        logs_broker_error();
+    }
+    return ok ? broker : -1;
+}
+
+void ipc_enviar_ack(uint32_t id_suscriptor, uint32_t id_mensaje, int socket) {
+    void* ack = ack_crear(id_suscriptor, id_mensaje);
+    void* paquete = paquete_from_ack(ack);
+
+    ipc_enviar_a(socket, paquete);
+    logger_enviado(logger, paquete);
+
+    ack_liberar(ack);
+    paquete_liberar(paquete);
+}
+
+static void ipc_escuchar_gameboy(t_listener_config* config) {
+    printf("Abriendo conexion para escuchar al gameboy");
+    int server = ipc_escuchar_en(config->ip, config->puerto);
+    while(1) {
+        int cliente = ipc_esperar_cliente(server);
+        config->handler(cliente);
+    }
+}
+
+static void logs_broker_error(){
+    log_info(logger, "Error de comunicacion con el Broker - Operacion por Default iniciada");
+}
+
+static void logs_broker_reintento(){
+    log_info(logger, "Inicio de proceso de reintento de comunicacion con el Broker");
 }

@@ -12,22 +12,6 @@ static void procesar_appeared_pokemon_(char*, t_coord*);
 static void procesar_appeared_pokemon(t_appeared_pokemon*);
 static void procesar_localized_pokemon(t_paquete*);
 static void procesar_caught_pokemon(t_paquete*);
-static void escuchar_a(int cliente);
-
-void escuchar_gameboy() {
-    int server = ipc_escuchar_en(config_team->ip_team, config_team->puerto_team);
-    while(1) {
-        int cliente = ipc_esperar_cliente(server);
-        escuchar_a(cliente);
-    }
-}
-
-void suscribirse_a(t_tipo_mensaje tipo_mensaje) {
-	pthread_t thread;
-	int broker = enviar_suscripcion(tipo_mensaje);
-	pthread_create(&thread, NULL, (void*)escuchar_a, broker);
-	pthread_detach(thread);
-}
 
 static void procesar_appeared_pokemon(t_appeared_pokemon* appeared_pokemon) {
     log_debug(default_logger, "Recibido APPEARED_POKEMON (%s)", appeared_pokemon->nombre);
@@ -122,9 +106,11 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
     mensaje_liberar_caught_pokemon(caught_pokemon);
 }
 
-static void escuchar_a(int cliente) {
-    while(ipc_hay_datos_para_recibir_de(cliente)){
-        t_paquete* paquete = ipc_recibir_de(cliente);
+void escuchar_a(int con) {
+    while(ipc_hay_datos_para_recibir_de(con)){
+        t_paquete* paquete = ipc_recibir_de(con);
+
+        logger_recibido(logger, paquete);
 
         logger_recibido(logger, paquete);
 
@@ -146,8 +132,7 @@ static void escuchar_a(int cliente) {
             log_error(default_logger, "Recibido mensaje invalido: tipo de mensaje %d", paquete->header->tipo_mensaje);
             continue;
         }
-
-        enviar_ack(paquete->header->id_mensaje, cliente);
+        ipc_enviar_ack(config_team->id, paquete->header->id_mensaje, con);
         paquete_liberar(paquete);
     }
 }

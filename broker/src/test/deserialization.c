@@ -4,6 +4,8 @@
 
 #include "deserialization.h"
 
+t_log* logger;
+
 void test_mensaje(t_paquete* paquete) {
     switch (paquete->header->tipo_mensaje) {
     case NEW_POKEMON:
@@ -135,6 +137,7 @@ void test_informe_id(t_paquete* paquete) {
 }
 
 void test_deserializarRecibirTodos(char* ip, char* puerto) {
+    logger = log_create("default.log", "DEFAULT", true, LOG_LEVEL_DEBUG);
     int broker = ipc_escuchar_en(ip, puerto);
 
     while (1) {

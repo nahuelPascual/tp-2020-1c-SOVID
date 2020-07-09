@@ -21,7 +21,6 @@ static bool en_camino(t_entrenador*);
 static void realizar_intercambio(t_entrenador*);
 static bool queda_quantum(int id);
 static t_pokemon_mapeado* encontrar_pokemon_cercano(t_entrenador*, t_list*);
-
 static void log_estado_objetivos(t_entrenador*);
 static void log_algoritmo(t_entrenador* entrenador);
 static void logs_movimiento_entrenador(t_entrenador* entrenador);

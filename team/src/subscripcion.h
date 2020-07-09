@@ -19,7 +19,6 @@
 #include "configuration.h"
 #include "planificador.h"
 
-void suscribirse_a(t_tipo_mensaje tipo_mensaje);
-void escuchar_gameboy();
+void escuchar_a(int);
 
 #endif //TEAM_SUBSCRIPCION_H
