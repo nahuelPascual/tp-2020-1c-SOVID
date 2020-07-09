@@ -76,6 +76,7 @@ void entrenador_init_list(t_list* nuevos_entrenadores) {
 
 t_entrenador* entrenador_get_libre_mas_cercano(t_coord* posicion_buscada) {
     t_list* disponibles = get_disponibles();
+    if (list_size(disponibles) == 0) return NULL;
     int menor = 10000, entrenador_mas_cercano;
     for (int i=0 ; i<list_size(disponibles) ; i++) {
         t_entrenador* entrenador = list_get(disponibles, i);
@@ -200,12 +201,15 @@ void entrenador_verificar_objetivos(t_entrenador* e) {
     }
 }
 
-bool entrenador_asignado_a(char* pokemon) {
-    bool _persigue_a(void* item) {
+int entrenador_cantidad_asignado_a(char* pokemon) {
+    int count = 0;
+    void _count(void* item) {
         t_entrenador* e = (t_entrenador*) item;
-        return e->pokemon_buscado != NULL && string_equals_ignore_case(e->pokemon_buscado->pokemon, pokemon);
+        if (e->pokemon_buscado != NULL && string_equals_ignore_case(e->pokemon_buscado->pokemon, pokemon)) count++;
     }
-    return list_any_satisfy(entrenadores, (void*)_persigue_a);
+    list_iterate(entrenadores, (void*)_count);
+
+    return count;
 }
 
 bool entrenador_cumplio_objetivos(t_entrenador* e) {
@@ -220,15 +224,20 @@ void entrenador_asignar_objetivo(t_entrenador* e) {
     t_list* objetivos = objetivos_get_especies_pendientes();
     t_list* objetivos_localizados = pokemon_filtrar_especies_encontradas(objetivos);
 
+    // esta logica ya estaba implementada en subscripcion.c pero se duplica por simplicidad
     bool _es_asignable(void* especie) {
         char* pokemon = (char*) especie;
-        bool _persigue_a(void* item) {
-            t_entrenador* e = (t_entrenador*) item;
-            return e->pokemon_buscado != NULL && string_equals_ignore_case(e->pokemon_buscado->pokemon, pokemon);
-        }
-        return !list_any_satisfy(entrenadores, (void*)_persigue_a);
+
+        int capturas_pendientes = objetivos_cantidad_pendientes(pokemon);
+        if (capturas_pendientes == 0) return false;
+
+        int entrenadores_asignados = entrenador_cantidad_asignado_a(pokemon);
+
+        return entrenadores_asignados < capturas_pendientes;
     }
+    pthread_mutex_lock(&mx_atrapados);
     t_list* objetivos_asignables = list_filter(objetivos_localizados, (void*)_es_asignable);
+    pthread_mutex_unlock(&mx_atrapados);
 
     if (list_size(objetivos_asignables) > 0) {
         e->pokemon_buscado = encontrar_pokemon_cercano(e, objetivos_asignables);

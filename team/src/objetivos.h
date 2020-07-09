@@ -11,8 +11,10 @@
 #include <commons/collections/list.h>
 #include "sender.h"
 
+pthread_mutex_t mx_atrapados;
+
 t_dictionary* calcular_objetivos_globales(t_list* entrenadores);
-bool is_pokemon_requerido(char* nombre);
+int objetivos_cantidad_pendientes(char* nombre);
 t_list* objetivos_get_especies_pendientes();
 void objetivos_capturado(char* nombre);
 

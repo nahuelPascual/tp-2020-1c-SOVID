@@ -20,7 +20,10 @@ static void procesar_appeared_pokemon(t_appeared_pokemon* appeared_pokemon) {
 }
 
 static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
-    if (!is_pokemon_requerido(nombre)){
+    pthread_mutex_lock(&mx_atrapados);
+    int capturas_pendientes = objetivos_cantidad_pendientes(nombre);
+    if (capturas_pendientes<1) {
+        pthread_mutex_unlock(&mx_atrapados);
         log_debug(default_logger, "Se ignora %s porque no es un pokemon requerido", nombre);
         return;
     }
@@ -28,9 +31,11 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
     t_pokemon_mapeado* objetivo = pokemon_agregar_al_mapa(nombre, 1, posicion);
 
     pthread_mutex_lock(&mx_entrenadores);
-    if (entrenador_asignado_a(nombre)) {
-        log_debug(default_logger, "No se planifica %s porque ya hay una captura en proceso para esa especie", nombre);
+    int entrenadores_asignados = entrenador_cantidad_asignado_a(nombre);
+    if (entrenadores_asignados >= capturas_pendientes) {
+        log_debug(default_logger, "No se planifica %s porque ya hay %d capturas en proceso", nombre, entrenadores_asignados);
         pthread_mutex_unlock(&mx_entrenadores);
+        pthread_mutex_unlock(&mx_atrapados);
         return;
     }
 
@@ -38,6 +43,7 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
     if (entrenador == NULL) {
         log_debug(default_logger, "No hay ningun entrenador libre para planificar hacia (%d, %d)", posicion->x, posicion->y);
         pthread_mutex_unlock(&mx_entrenadores);
+        pthread_mutex_unlock(&mx_atrapados);
         return;
     }
 
@@ -45,6 +51,7 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
     planificador_encolar_ready(entrenador);
 
     pthread_mutex_unlock(&mx_entrenadores);
+    pthread_mutex_unlock(&mx_atrapados);
 }
 
 static void procesar_localized_pokemon(t_paquete* paquete) {

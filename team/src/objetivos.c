@@ -11,20 +11,37 @@ extern t_log* default_logger;
 
 static t_dictionary* mapa_objetivos;
 static t_dictionary* atrapados;
-static pthread_mutex_t mx_atrapados;
 
-static void log_objetivos_globales(t_dictionary*);
+static void log_objetivos_globales();
 static void actualizar_objetivos_globales(void* entrenador);
+static void actualizar_capturados(void*);
 
-t_dictionary* calcular_objetivos_globales(t_list* entrenadores){
+t_dictionary* calcular_objetivos_globales(t_list* entrenadores) {
     mapa_objetivos = dictionary_create();
-    atrapados = dictionary_create();
     list_iterate(entrenadores, &actualizar_objetivos_globales);
+
+    atrapados = dictionary_create();
+    list_iterate(entrenadores, actualizar_capturados);
+
     sender_init_mensajes_esperando_respuesta();
 
-    log_objetivos_globales(mapa_objetivos); //debug logging
+    log_objetivos_globales(); //debug logging
 
     return mapa_objetivos;
+}
+
+static void actualizar_capturados(void* e) {
+    t_list* capturados = ((t_entrenador*) e)->capturados;
+    void _contar(void* c) {
+        t_pokemon_capturado* p = (t_pokemon_capturado*) c;
+        if(dictionary_has_key(atrapados, p->nombre)){
+            int cant = (int) dictionary_get(atrapados, p->nombre);
+            dictionary_put(atrapados, p->nombre, (void*) ++cant);
+        } else {
+            dictionary_put(atrapados, p->nombre, (void*)1);
+        }
+    }
+    list_iterate(capturados, (void*)_contar);
 }
 
 static void actualizar_objetivos_globales(void* entrenador) {
@@ -59,19 +76,17 @@ t_list* objetivos_get_especies_pendientes() {
     return objetivos_globales;
 }
 
-bool is_pokemon_requerido(char* nombre) {
-    if (!dictionary_has_key(mapa_objetivos, nombre)) {
-        log_debug(default_logger, "%s no es un objetivo del team", nombre);
-        return false;
-    }
+int objetivos_cantidad_pendientes(char* nombre) {
     int cantidad_objetivo = (int) dictionary_get(mapa_objetivos, nombre);
+    if (cantidad_objetivo == 0) {
+        log_debug(default_logger, "%s no es un objetivo del team", nombre);
+        return 0;
+    }
 
-    pthread_mutex_lock(&mx_atrapados);
     int cantidad_atrapado = (int) dictionary_get(atrapados, nombre);
-    pthread_mutex_unlock(&mx_atrapados);
 
     log_debug(default_logger, "Pokemon %s: capturados %d/%d", nombre, cantidad_atrapado, cantidad_objetivo);
-    return cantidad_objetivo > cantidad_atrapado;
+    return cantidad_objetivo - cantidad_atrapado;
 }
 
 void objetivos_capturado(char* pokemon) {
@@ -85,9 +100,9 @@ void objetivos_capturado(char* pokemon) {
     }
 }
 
-static void log_objetivos_globales(t_dictionary* mapa_objetivos){
+static void log_objetivos_globales(){
     void _loggear(char* key, void* value){
-         log_debug(default_logger, "        -Objetivo: %s (cant = %i)", key, (char*)value);
+         log_debug(default_logger, "        -Objetivo: %s (cant = %i), Capturados %d", key, (char*)value, dictionary_get(atrapados, key));
     }
     log_debug(default_logger, "Objetivos Globales: ");
     dictionary_iterator(mapa_objetivos, (void*)_loggear);
