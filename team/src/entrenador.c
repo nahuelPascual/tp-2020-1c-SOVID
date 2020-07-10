@@ -21,6 +21,9 @@ static bool en_camino(t_entrenador*);
 static void realizar_intercambio(t_entrenador*);
 static bool queda_quantum(int id);
 static t_pokemon_mapeado* encontrar_pokemon_cercano(t_entrenador*, t_list*);
+static void consumir_quantum_restante(int id);
+
+
 static void log_estado_objetivos(t_entrenador*);
 static void log_algoritmo(t_entrenador* entrenador);
 static void logs_movimiento_entrenador(t_entrenador* entrenador);
@@ -101,6 +104,16 @@ void entrenador_otorgar_ciclos_ejecucion(t_entrenador* entrenador, int cant) {
     }
 }
 
+void entrenador_abortar_ejecucion() {
+    bool _is_executing(void* e) {
+        return ((t_entrenador*)e)->estado == EXECUTE;
+    }
+    t_entrenador* en_ejecucion = list_find(entrenadores, (void*)_is_executing);
+    if(en_ejecucion) {
+        consumir_quantum_restante(en_ejecucion->id);
+    }
+}
+
 void entrenador_execute(t_entrenador* e) {
     log_estado_objetivos(e);
     while(1) {
@@ -113,13 +126,14 @@ void entrenador_execute(t_entrenador* e) {
 
         sleep(config_team->retardo_ciclo_cpu);
         e->info->ciclos_cpu_ejecutados++;
+        e->info->ejecucion_parcial++; //solo sirve para SJF-CD
 
         if (en_camino(e)) {
             avanzar(e);
         } else if (e->deadlock) {
             if (--e->intercambio->remaining_intercambio < 1) {
                 realizar_intercambio(e);
-                while (queda_quantum(e->id)); // consumir quantum restante
+                consumir_quantum_restante(e->id);
             }
         } else {
             logs_transicion(e, BLOCKED_WAITING);
@@ -132,7 +146,7 @@ void entrenador_execute(t_entrenador* e) {
                 entrenador_concretar_captura(e, e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion);
                 entrenador_verificar_objetivos(e);
             }
-            while (queda_quantum(e->id)); // consumir quantum restante
+            consumir_quantum_restante(e->id);
         }
     }
 }
@@ -247,6 +261,10 @@ void entrenador_asignar_objetivo(t_entrenador* e) {
     free(objetivos);
     free(objetivos_localizados);
     free(objetivos_asignables);
+}
+
+static void consumir_quantum_restante(int id) {
+    while (queda_quantum(id));
 }
 
 static t_pokemon_mapeado* encontrar_pokemon_cercano(t_entrenador* e, t_list* pokemons) {

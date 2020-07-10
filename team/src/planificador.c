@@ -17,7 +17,6 @@ static void planificar();
 static t_entrenador* planificar_FIFO();
 static t_entrenador* planificar_RR(int quantum);
 static t_entrenador* planificar_SJF();
-static t_entrenador* planificar_SJF_con_desalojo();
 static float estimar_proxima_rafaga(t_entrenador*);
 static int normalizar_algoritmo_planificacion(char* algoritmo);
 static t_entrenador* elegir_entrenador();
@@ -47,10 +46,8 @@ static void planificar(){
             entrenador_planificado = planificar_RR(config_team->quantum);
             break;
         case SJF:
-            entrenador_planificado = planificar_SJF();
-            break;
         case SJF_CON_DESALOJO:
-            entrenador_planificado = planificar_SJF_con_desalojo();
+            entrenador_planificado = planificar_SJF();
             break;
         default:
             log_error(default_logger, "Algoritmo de planificacion no definido");
@@ -90,6 +87,7 @@ static void planificar(){
 
 void planificador_encolar_ready(t_entrenador* e) {
     if (es_SJF()) { // no se deben actualizar los datos de estimacion cuando SJF hace una ejecucion parcial
+        if (algoritmo == SJF_CON_DESALOJO) entrenador_abortar_ejecucion();
         if (e->estado != EXECUTE) {
             e->info->ultima_estimacion = e->info->estimado_siguiente_rafaga;
             e->info->ultima_ejecucion = e->info->ejecucion_parcial;
@@ -177,12 +175,6 @@ static t_entrenador* planificar_RR(int quantum) {
 static t_entrenador* planificar_SJF() {
     t_entrenador* entrenador = elegir_entrenador();
     planificar_FIFO();
-    return entrenador;
-}
-
-static t_entrenador* planificar_SJF_con_desalojo() {
-    t_entrenador* entrenador = elegir_entrenador();
-    planificar_RR(1);
     return entrenador;
 }
 

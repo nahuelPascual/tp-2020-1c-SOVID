@@ -75,6 +75,7 @@ bool entrenador_cumplio_objetivos(t_entrenador*);
 int entrenador_cantidad_asignado_a(char* pokemon);
 void entrenador_asignar_objetivo(t_entrenador*);
 void entrenador_concretar_captura(t_entrenador* e, char* pokemon, t_coord* ubicacion);
+void entrenador_abortar_ejecucion();
 
 void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado);
 void logs_deadlock(bool existe_deadlock);
