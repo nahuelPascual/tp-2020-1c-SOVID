@@ -23,6 +23,9 @@ typedef struct {
     char* puerto_broker;
     char* ip_game_card;
     char* puerto_game_card;
+    int block_size;
+    int blocks;
+    char* magic_number;
 } t_config_game_card;
 
 t_log* logger;

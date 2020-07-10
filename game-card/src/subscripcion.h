@@ -9,6 +9,8 @@
 #include <pthread.h>
 #include "configuration.h"
 #include "delibird-commons/utils/ipc.h"
+#include "delibird-commons/utils/logger.h"
+#include "filesystem.h"
 
 void escuchar_a(int);
 

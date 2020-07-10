@@ -28,10 +28,12 @@ void config_game_card_init() {
     config_game_card->puerto_broker = config_get_string_value(config, "PUERTO_BROKER");
     config_game_card->ip_game_card = config_get_string_value(config, "IP_GAME_CARD");
     config_game_card->puerto_game_card = config_get_string_value(config, "PUERTO_GAME_CARD");
-
+    config_game_card->block_size = config_get_int_value(config, "BLOCK_SIZE");
+    config_game_card->blocks = config_get_int_value(config, "BLOCKS");
+    config_game_card->magic_number = config_get_string_value(config, "MAGIC_NUMBER");
+  
     log_config_game_card(config_game_card); // logeo la config
 }
-
 
 static void log_config_game_card(t_config_game_card* config_game_card){
     log_debug(logger, "Game Card ID: %d", config_game_card->id);

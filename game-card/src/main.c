@@ -11,6 +11,8 @@
 #include <delibird-commons/model/suscripcion.h>
 #include "subscripcion.h"
 #include "configuration.h"
+#include "filesystem.h"
+
 
 t_listener_config* crear_suscripciones();
 t_listener_config* crear_gameboy_listener();
@@ -19,6 +21,7 @@ int main(int argc, char **argv) {
     config_game_card_init();
     t_listener_config* suscripciones_config = crear_suscripciones();
     t_listener_config* gameboy_config = crear_gameboy_listener();
+    filesystem_init();
     while(1){
 
     }

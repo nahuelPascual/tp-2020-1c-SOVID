@@ -23,7 +23,7 @@ void escuchar_a(int con) {
             pthread_detach(thread);
             break;
         case CATCH_POKEMON:
-            pthread_create(&thread, NULL, (void*)procesar_catch_pokemon, paquete);
+            pthread_create(&thread, NULL, (void*)procesar_catch_pokemon, paquete_to_catch_pokemon(paquete));
             pthread_detach(thread);
             break;
         default:
@@ -36,13 +36,22 @@ void escuchar_a(int con) {
 }
 
 static void procesar_get_pokemon(t_get_pokemon* get_pokemon) {
-    log_debug(logger, "Recibido GET POKEMON (%s)", get_pokemon->nombre);
+    log_info(logger, "Recibido GET POKEMON:");
+    logger_get_pokemon(logger, get_pokemon);
 }
 
 static void procesar_new_pokemon(t_new_pokemon* new_pokemon) {
-    log_debug(logger, "Recibido NEW POKEMON (%s)", new_pokemon->nombre);
+    log_info(logger, "Recibido NEW POKEMON:");
+    logger_new_pokemon(logger, new_pokemon);
+    t_pokemon_info* pokemon_info = check_pokemon_info(new_pokemon->nombre);
+    if(pokemon_info->is_open){
+        log_error(logger, "El archivo %s se encuentra abierto.", pokemon_info->file_path);
+    }else{
+        log_info(logger, "El archivo %s no se encuentra abierto", pokemon_info->file_path);
+    }
 }
 
 static void procesar_catch_pokemon(t_catch_pokemon* catch_pokemon) {
-    log_debug(logger, "Recibido CATCH POKEMON (%s)", catch_pokemon->nombre);
+    log_info(logger, "Recibido CATCH POKEMON:");
+    logger_catch_pokemon(logger, catch_pokemon);
 }
