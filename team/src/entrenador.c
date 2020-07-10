@@ -26,7 +26,7 @@ static void log_algoritmo(t_entrenador* entrenador);
 static void logs_movimiento_entrenador(t_entrenador* entrenador);
 static void logs_atrapar(t_entrenador* entrenador);
 static void logs_intercambio(t_entrenador* entrenador,t_entrenador* otro_entrenador, t_pokemon_capturado* entregado,t_pokemon_capturado* recibido);
-static void logs_error_transicion();
+static void logs_error_transicion(int, char*);
 
 static t_info* create_info(){
     t_info* info = malloc(sizeof(t_info));
@@ -102,6 +102,7 @@ void entrenador_otorgar_ciclos_ejecucion(t_entrenador* entrenador, int cant) {
 }
 
 void entrenador_execute(t_entrenador* e) {
+    log_estado_objetivos(e);
     while(1) {
         if (!queda_quantum(e->id)) {
             if (e->estado != NEW && e->estado != READY) {
@@ -309,13 +310,10 @@ static void realizar_intercambio(t_entrenador* entrenador) {
     }
     t_pokemon_objetivo* otro_objetivo = list_find(otro_entrenador->objetivos, _otro_objetivo);
 
-    if (mi_objetivo == NULL || otro_objetivo == NULL) {
-        log_error(default_logger, "Error al realizar intercambio: no se encontro alguno de los objetivos");
-        exit(EXIT_FAILURE);
+    recibo->es_objetivo = mi_objetivo->fue_capturado = true;
+    if (otro_objetivo != NULL) {
+        entrego->es_objetivo = otro_objetivo->fue_capturado = true;
     }
-
-    recibo->es_objetivo = entrego->es_objetivo = true;
-    mi_objetivo->fue_capturado = otro_objetivo->fue_capturado = true;
 
     entrenador_verificar_objetivos(entrenador);
     entrenador_verificar_objetivos(otro_entrenador);
@@ -344,12 +342,12 @@ t_list* entrenador_calcular_pokemon_sobrantes(t_entrenador* e) {
     return list_filter(e->capturados, (void*)_sobrante);
 }
 
-t_list* entrenador_get_bloqueados() {
-    bool _is_blocked_full(void* elem) {
+t_list* entrenador_get_bloqueados(int id) {
+    bool _is_waiting_deadlock(void* elem) {
         t_entrenador* e = (t_entrenador*) elem;
-        return e->estado == BLOCKED_FULL && !e->deadlock;
+        return e->id != id && e->estado == BLOCKED_FULL && !e->deadlock;
     }
-    return list_filter(entrenadores, (void*)_is_blocked_full);
+    return list_filter(entrenadores, (void*)_is_waiting_deadlock);
 }
 
 static void avanzar(t_entrenador* e) {
@@ -456,7 +454,7 @@ void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado){
                 break;
 
             default:
-                logs_error_transicion();
+                logs_error_transicion(entrenador->estado, "READY");
                 break;
             }
             break;
@@ -472,7 +470,7 @@ void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado){
                 break;
 
             default:
-                logs_error_transicion();
+                logs_error_transicion(entrenador->estado, "BLOCKED_IDLE");
                 break;
             }
             break;
@@ -491,8 +489,12 @@ void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado){
                     log_info(logger, "Entrenador: %d pasa a BLOCKED_FULL desde BLOCKED_WAITING por llegada al limite de capturas", entrenador->id);
                     break;
 
+                case BLOCKED_FULL:
+                    log_info(logger, "Entrenador: %d sigue en BLOCKED_FULL despues de realizar un intercambio", entrenador->id);
+                    break;
+
                 default:
-                    logs_error_transicion();
+                    logs_error_transicion(entrenador->estado, "BLOCKED_FULL");
                     break;
             }
             break;
@@ -511,7 +513,7 @@ void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado){
                 log_info(logger, "Entrenador: %d pasa a EXIT desde EXECUTE por resolucion del intercambio y finalizacion de sus objetivos", entrenador->id);
                 break;
             default:
-                logs_error_transicion();
+                logs_error_transicion(entrenador->estado, "EXIT");
             break;
         }
         break;
@@ -521,7 +523,7 @@ void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado){
             break;
 
         default:
-            logs_error_transicion();
+            logs_error_transicion(entrenador->estado, "");
             break;
     }
 }
@@ -547,8 +549,8 @@ void logs_deadlock(bool existe_deadlock){
     log_info(logger, "Resultado: %s deadlock", existe_deadlock ? "Existe" : "No existe");
 }
 
-static void logs_error_transicion(){
-    log_error(logger, "Error en el cambio de cola de planificacion");
+static void logs_error_transicion(int actual, char* nuevo){
+    log_error(logger, "Error en el cambio de cola de planificacion (%d > %s)", actual, nuevo);
 }
 
 static void log_estado_objetivos(t_entrenador* e) {
@@ -557,7 +559,9 @@ static void log_estado_objetivos(t_entrenador* e) {
         if (string_length(str) > 0) {
             string_append(&str, ", ");
         }
-        string_append(&str, ((t_pokemon_objetivo*)pokemon)->nombre);
+        t_pokemon_objetivo* p = (t_pokemon_objetivo*) pokemon;
+        string_append(&str, p->nombre);
+        string_append(&str, p->fue_capturado ? "(+)" : "(-)");
     }
     list_iterate(e->objetivos, (void*)_concat_nombres);
     char* objetivos = str;

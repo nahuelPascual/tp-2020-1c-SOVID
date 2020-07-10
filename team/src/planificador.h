@@ -14,6 +14,7 @@
 #include "entrenador.h"
 #include "configuration.h"
 #include "metricas.h"
+#include "deadlock.h"
 
 void planificador_init();
 void planificador_encolar_ready(t_entrenador*);

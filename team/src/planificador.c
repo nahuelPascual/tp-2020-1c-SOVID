@@ -6,8 +6,6 @@
 
 extern t_log* default_logger;
 
-const int COSTO_INTERCAMBIO = 5;
-
 static enum {FIFO, ROUND_ROBIN, SJF, SJF_CON_DESALOJO};
 static t_queue* cola_ready;
 static pthread_mutex_t mx_cola_ready;
@@ -24,7 +22,6 @@ static float estimar_proxima_rafaga(t_entrenador*);
 static int normalizar_algoritmo_planificacion(char* algoritmo);
 static t_entrenador* elegir_entrenador();
 static bool es_SJF();
-static t_entrenador* detectar_deadlock(t_entrenador*);
 static t_entrenador* pop();
 static void push(t_entrenador*);
 
@@ -118,7 +115,7 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
 
     t_entrenador* otro_entrenador = NULL;
     pthread_mutex_lock(&mx_entrenadores);
-    if (e->estado == BLOCKED_FULL && (otro_entrenador = detectar_deadlock(e)) != NULL) {
+    if (e->estado == BLOCKED_FULL && (otro_entrenador = deadlock_detectar(e)) != NULL) {
         logs_deadlock(true);
         log_debug(default_logger, "Se planifica al entrenador #%d hacia la posicion (%d, %d) para resolver DEADLOCK con entrenador #%d",
                 e->id, otro_entrenador->posicion->x, otro_entrenador->posicion->y, otro_entrenador->id);
@@ -148,62 +145,6 @@ void planificador_admitir(t_entrenador* e) {
             e->id, e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion->x, e->pokemon_buscado->ubicacion->y);
     planificador_encolar_ready(e);
     pthread_mutex_unlock(&mx_entrenadores);
-}
-
-static t_entrenador* detectar_deadlock(t_entrenador* entrenador) {
-    if (entrenador->deadlock) {
-        // cuando vuelvo de resolver un deadlock entre Entrenador1 y Entrenador2,
-        // puede darse que Entrenador1 se planifique para resolver un nuevo deadlock con Entrenador2
-        // y luego Entrenador2 quiera planificarse para resolver deadlock con Entrenador3.
-        return NULL;
-    }
-
-    t_list* bloqueados = entrenador_get_bloqueados();
-    t_list* faltantes = entrenador_calcular_pokemon_faltantes(entrenador);
-    t_list* mis_sobrantes = entrenador_calcular_pokemon_sobrantes(entrenador);
-
-    bool _es_mi_sobrante(void* item) {
-        t_pokemon_objetivo* faltante = (t_pokemon_objetivo*) item;
-        bool _equals(void* item) {
-            t_pokemon_objetivo* mi_sobrante = (t_pokemon_objetivo*) item;
-            return string_equals_ignore_case(faltante->nombre, mi_sobrante->nombre);
-        }
-        return list_any_satisfy(mis_sobrantes, (void*)_equals);
-    }
-    bool _es_mi_faltante(void* item) {
-        t_pokemon_objetivo* sobrante = (t_pokemon_objetivo*) item;
-        bool _equals(void* item) {
-            t_pokemon_objetivo* faltante = (t_pokemon_objetivo*) item;
-            return string_equals_ignore_case(faltante->nombre, sobrante->nombre);
-        }
-        return list_any_satisfy(faltantes, (void*)_equals);
-    }
-
-    t_entrenador* otro_entrenador = NULL;
-    for (int i = 0 ; i < list_size(bloqueados) ; i++) {
-        t_entrenador* un_bloqueado = list_get(bloqueados, i);
-        t_list* faltantes_otro = entrenador_calcular_pokemon_faltantes(un_bloqueado);
-        t_list* sobrantes_otro = entrenador_calcular_pokemon_sobrantes(un_bloqueado);
-
-        t_pokemon_objetivo* entrego = (t_pokemon_objetivo*) list_find(faltantes_otro, (void*)_es_mi_sobrante);
-        t_pokemon_objetivo* recibo = (t_pokemon_objetivo*) list_find(sobrantes_otro, (void*)_es_mi_faltante);
-        if (entrego != NULL && recibo != NULL) {
-            t_intercambio* intercambio = malloc(sizeof(t_intercambio));
-            intercambio->entrego_pokemon = entrego->nombre;
-            intercambio->recibo_pokemon = recibo->nombre;
-            intercambio->id_otro_entrenador = un_bloqueado->id;
-            intercambio->ubicacion = un_bloqueado->posicion;
-            intercambio->remaining_intercambio = COSTO_INTERCAMBIO;
-            entrenador->intercambio = intercambio;
-            otro_entrenador = un_bloqueado;
-        }
-    }
-
-    free(bloqueados);
-    free(faltantes);
-    free(mis_sobrantes);
-
-    return otro_entrenador;
 }
 
 static t_entrenador* pop() {
