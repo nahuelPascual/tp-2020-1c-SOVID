@@ -7,8 +7,11 @@
 
 #include "cola.h"
 
-t_cola* cola_crear() {
+t_cola* cola_crear(t_tipo_mensaje tipo_mensaje) {
     t_cola* cola = malloc(sizeof(t_cola));
+
+    cola->tipo_mensaje = tipo_mensaje;
+
     cola->suscriptores = list_create();
     cola->mensajes_sin_despachar = queue_create();
     cola->mensajes_despachados = queue_create();
@@ -100,4 +103,30 @@ t_mensaje_despachable* cola_find_mensaje_despachable_by_id(t_cola* cola, uint32_
     list_destroy(mensajes_despachables);
 
     return mensaje_despachable;
+}
+
+bool cola_remove_and_destroy_mensaje_despachable_by_id(t_cola* cola, uint32_t id) {
+    bool _is_the_one(t_mensaje_despachable* mensaje_despachable) {
+        return mensaje_despachable->id == id;
+    }
+
+    pthread_mutex_lock(&cola->mutex_mensajes_sin_despachar);
+    t_mensaje_despachable* mensaje_sin_despachar = list_remove_by_condition(cola->mensajes_sin_despachar->elements, (void*) _is_the_one);
+    pthread_mutex_unlock(&cola->mutex_mensajes_sin_despachar);
+
+    if(mensaje_sin_despachar) {
+        mensaje_despachable_liberar(mensaje_sin_despachar);
+        return true;
+    }
+
+    pthread_mutex_lock(&cola->mutex_mensajes_despachados);
+    t_mensaje_despachable* mensaje_despachado = list_remove_by_condition(cola->mensajes_despachados->elements, (void*) _is_the_one);
+    pthread_mutex_unlock(&cola->mutex_mensajes_despachados);
+
+    if(mensaje_despachado) {
+        mensaje_despachable_liberar(mensaje_despachado);
+        return true;
+    }
+
+    return false;
 }

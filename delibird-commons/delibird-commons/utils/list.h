@@ -14,4 +14,8 @@
 
 bool list_equals(t_list* una_lista, t_list* otra_lista, bool (*comparador)(void*, void*));
 
+void* list_min_by(t_list* lista, void* key_extractor(void*));
+
+int list_index_of(t_list* lista, void* elemento_a_buscar);
+
 #endif /* UTILS_LIST_H_ */

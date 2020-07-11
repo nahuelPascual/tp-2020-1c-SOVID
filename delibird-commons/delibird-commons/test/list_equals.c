@@ -56,7 +56,7 @@ void test_all() {
     list_add(otra_lista, (void*) 1);
     list_add(otra_lista, (void*) 1);
     printf("DOS LISTAS IGUALES, CON REPETIDOS Y EN DISTINTO ORDEN: [1,1,2] y [2,1,1]: %s\n",
-list_equals(una_lista, otra_lista, (void*) igualigual) ? "SI" : "NO");
+            list_equals(una_lista, otra_lista, (void*) igualigual) ? "SI" : "NO");
     list_clean(una_lista);
     list_clean(otra_lista);
 

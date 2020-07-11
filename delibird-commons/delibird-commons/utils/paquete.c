@@ -310,8 +310,12 @@ t_paquete* paquete_from_informe_id(t_informe_id* informe_id) {
     return paquete;
 }
 
+void paquete_set_tipo_mensaje(t_paquete* paquete, t_tipo_mensaje tipo_mensaje) {
+    paquete->header->tipo_mensaje = tipo_mensaje;
+}
+
 bool paquete_es_mensaje_de_respuesta(t_paquete* paquete) {
-    return paquete->header->tipo_mensaje == MENSAJE && paquete->header->correlation_id_mensaje > 0;
+    return paquete->header->tipo_paquete == MENSAJE && paquete->header->correlation_id_mensaje > 0;
 }
 
 t_header* crear_header(t_tipo_paquete tipo_paquete, t_tipo_mensaje tipo_mensaje, uint32_t size) {

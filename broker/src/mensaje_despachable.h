@@ -17,7 +17,6 @@
 #include "memoria.h"
 
 typedef struct {
-    t_tipo_mensaje tipo;
     uint32_t id;
     uint32_t correlation_id;
     uint32_t size;
@@ -42,7 +41,5 @@ bool mensaje_despachable_tiene_todos_los_acks(t_mensaje_despachable* mensaje_des
 bool mensaje_despachable_fue_recibido_por(t_mensaje_despachable* mensaje_despachable, t_suscriptor* suscriptor);
 
 bool mensaje_despachable_es_misma_respuesta_que(t_mensaje_despachable* mensaje_despachable, t_paquete* paquete);
-
-void mensaje_despachable_remove_by_id_from(t_list* lista, uint32_t id_mensaje);
 
 #endif /* MENSAJE_DESPACHABLE_H_ */

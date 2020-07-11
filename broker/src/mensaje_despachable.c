@@ -11,7 +11,6 @@ t_header* _rearmar_header_con(t_mensaje_despachable* mensaje_despachable) {
     t_header* header = malloc(sizeof(t_header));
 
     header->tipo_paquete = MENSAJE;
-    header->tipo_mensaje = mensaje_despachable->tipo;
     header->id_mensaje = mensaje_despachable->id;
     header->correlation_id_mensaje = mensaje_despachable->correlation_id;
     header->payload_size = mensaje_despachable->size;
@@ -24,7 +23,6 @@ t_mensaje_despachable* mensaje_despachable_from_paquete(t_paquete* paquete, t_me
 
   t_mensaje_despachable* mensaje_despachable = malloc(sizeof(t_mensaje_despachable));
 
-  mensaje_despachable->tipo = paquete->header->tipo_mensaje;
   mensaje_despachable->id = paquete->header->id_mensaje;
   mensaje_despachable->correlation_id = paquete->header->correlation_id_mensaje;
   mensaje_despachable->size = paquete->header->payload_size;
@@ -45,7 +43,7 @@ t_paquete* mensaje_despachable_to_paquete(t_mensaje_despachable* mensaje_despach
   paquete->header = _rearmar_header_con(mensaje_despachable);
   paquete->payload = malloc(mensaje_despachable->size);
 
-  void* direccion_fisica = memoria_get_direccion_fisica(memoria, mensaje_despachable->particion_asociada->base);
+  void* direccion_fisica = memoria_get_direccion_fisica_de(memoria, mensaje_despachable->particion_asociada);
 
   memcpy(paquete->payload, direccion_fisica, mensaje_despachable->size);
 
@@ -53,7 +51,6 @@ t_paquete* mensaje_despachable_to_paquete(t_mensaje_despachable* mensaje_despach
 }
 
 void mensaje_despachable_liberar(t_mensaje_despachable* mensaje_despachable) {
-    memoria_liberar_particion(mensaje_despachable->particion_asociada);
     list_destroy(mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado);
     list_destroy(mensaje_despachable->ids_suscriptores_que_lo_recibieron);
     pthread_mutex_destroy(&mensaje_despachable->mutex_ack);
@@ -94,12 +91,4 @@ bool mensaje_despachable_fue_recibido_por(t_mensaje_despachable* mensaje_despach
 
 bool mensaje_despachable_es_misma_respuesta_que(t_mensaje_despachable* mensaje_despachable, t_paquete* paquete) {
     return mensaje_despachable->correlation_id == paquete->header->correlation_id_mensaje;
-}
-
-void mensaje_despachable_remove_by_id_from(t_list* lista, uint32_t id) {
-    bool _is_the_one(t_mensaje_despachable* mensaje_despachable) {
-        return mensaje_despachable->id == id;
-    }
-
-    list_remove_by_condition(lista, (void*) _is_the_one);
 }

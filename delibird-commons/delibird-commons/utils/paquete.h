@@ -54,6 +54,8 @@ t_paquete* paquete_from_ack(t_ack* ack);
 t_paquete* paquete_from_suscripcion(t_suscripcion* suscripcion);
 t_paquete* paquete_from_informe_id(t_informe_id* informe_id);
 
+void paquete_set_tipo_mensaje(t_paquete* paquete, t_tipo_mensaje tipo_mensaje);
+
 bool paquete_es_mensaje_de_respuesta(t_paquete* paquete);
 
 #endif //PAQUETE_H

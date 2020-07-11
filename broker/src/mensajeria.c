@@ -30,10 +30,9 @@ void _procesar_paquete_de(t_paquete* paquete, int cliente) {
         break;
     }
     case MENSAJE: {
-        bool almacenado = buzon_almacenar_mensaje(buzon, paquete);
+        buzon_almacenar_mensaje(buzon, paquete);
 
-        if(almacenado)
-            buzon_informar_id_mensaje_a(paquete->header->id_mensaje, cliente);
+        buzon_informar_id_mensaje_a(buzon, cliente);
 
         break;
     }
