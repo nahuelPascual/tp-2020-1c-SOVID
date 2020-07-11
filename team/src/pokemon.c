@@ -65,7 +65,8 @@ void pokemon_sacar_del_mapa(char* nombre, t_coord* posicion) {
         if (p->ubicacion->x == posicion->x && p->ubicacion->y == posicion->y) {
             p->cantidad--;
             if (p->cantidad==0) {
-                list_remove_and_destroy_element(ubicaciones_pokemon, i, (void*)liberar_pokemon_mapeado);
+                if (list_size(ubicaciones_pokemon) == 1) dictionary_remove(pokemon_localizados, nombre); // si es la unica ubicacion que queda, se borra pokemon del mapa
+                list_destroy_and_destroy_elements(ubicaciones_pokemon, (void*)liberar_pokemon_mapeado);
             }
             break;
         }

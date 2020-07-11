@@ -9,14 +9,15 @@ extern t_log* logger;
 
 
 static void procesar_appeared_pokemon_(char*, t_coord*);
-static void procesar_appeared_pokemon(t_appeared_pokemon*);
+static void procesar_appeared_pokemon(t_paquete*);
 static void procesar_localized_pokemon(t_paquete*);
 static void procesar_caught_pokemon(t_paquete*);
 
-static void procesar_appeared_pokemon(t_appeared_pokemon* appeared_pokemon) {
-    log_debug(default_logger, "Recibido APPEARED_POKEMON (%s)", appeared_pokemon->nombre);
+static void procesar_appeared_pokemon(t_paquete* paquete) {
+    t_appeared_pokemon* appeared_pokemon = paquete_to_appeared_pokemon(paquete);
     procesar_appeared_pokemon_(appeared_pokemon->nombre, appeared_pokemon->posicion);
     mensaje_liberar_appeared_pokemon(appeared_pokemon);
+    paquete_liberar(paquete);
 }
 
 static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
@@ -56,7 +57,6 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
 
 static void procesar_localized_pokemon(t_paquete* paquete) {
     t_localized_pokemon* localized_pokemon = paquete_to_localized_pokemon(paquete);
-    log_debug(default_logger, "Recibido LOCALIZED_POKEMON (%s)", localized_pokemon->nombre);
 
     t_mensaje_enviado* pokemon_pedido = get_mensaje_enviado(paquete->header->correlation_id_mensaje);
     if (pokemon_pedido == NULL) {
@@ -79,27 +79,28 @@ static void procesar_localized_pokemon(t_paquete* paquete) {
 
     mensaje_liberar_localized_pokemon(localized_pokemon);
     liberar_get_pokemon_enviado(pokemon_pedido);
+    paquete_liberar(paquete);
 }
 
 static void procesar_caught_pokemon(t_paquete* paquete) {
-    log_debug(default_logger, "Recibido CAUGHT_POKEMON (id_catch_pokemon: %d)", paquete->header->correlation_id_mensaje);
     t_mensaje_enviado* intento_captura = get_mensaje_enviado(paquete->header->correlation_id_mensaje);
     if (intento_captura == NULL) {
         log_debug(default_logger, "Se ignora el mensaje por no corresponder a este team");
+        paquete_liberar(paquete);
         return;
     }
 
     t_caught_pokemon* caught_pokemon = paquete_to_caught_pokemon(paquete);
     t_entrenador* entrenador = entrenador_get(intento_captura->id_entrenador);
-    t_catch_pokemon* mensaje = intento_captura->mensaje_enviado;
+    t_catch_pokemon* mensaje = (t_catch_pokemon*) intento_captura->mensaje_enviado;
 
     if (caught_pokemon->is_caught){
+        log_debug(default_logger, "El entrenador #%d capturo un %s", entrenador->id, mensaje->nombre);
         entrenador_concretar_captura(entrenador, mensaje->nombre, mensaje->posicion);
-        log_debug(default_logger, "El entrenador #%d capturo un %s", mensaje->nombre);
     } else {
+        log_debug(default_logger, "El entrenador #%d no pudo capturar a %s", entrenador->id, mensaje->nombre);
         pokemon_sacar_del_mapa(mensaje->nombre, mensaje->posicion);
         entrenador->pokemon_buscado = NULL; // es el mismo puntero que el del mapa y ya se libera en la funcion de arriba
-        log_debug(default_logger, "El entrenador #%d no pudo capturar a %s", mensaje->nombre);
     }
 
     entrenador_verificar_objetivos(entrenador);
@@ -111,14 +112,12 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
 
     liberar_catch_pokemon_enviado(intento_captura);
     mensaje_liberar_caught_pokemon(caught_pokemon);
+    paquete_liberar(paquete);
 }
 
 void escuchar_a(int con) {
     while(ipc_hay_datos_para_recibir_de(con)){
         t_paquete* paquete = ipc_recibir_de(con);
-
-        logger_recibido(logger, paquete);
-
         logger_recibido(logger, paquete);
 
         pthread_t thread;
@@ -128,7 +127,7 @@ void escuchar_a(int con) {
             pthread_detach(thread);
             break;
         case APPEARED_POKEMON:
-            pthread_create(&thread, NULL, (void*)procesar_appeared_pokemon, paquete_to_appeared_pokemon(paquete));
+            pthread_create(&thread, NULL, (void*)procesar_appeared_pokemon, paquete);
             pthread_detach(thread);
             break;
         case CAUGHT_POKEMON:
@@ -140,6 +139,5 @@ void escuchar_a(int con) {
             continue;
         }
         ipc_enviar_ack(config_team->id, paquete->header->id_mensaje, con);
-        paquete_liberar(paquete);
     }
 }
