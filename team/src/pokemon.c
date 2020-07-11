@@ -105,6 +105,8 @@ static void add_pokemon_existente(t_pokemon_mapeado* this_pokemon) {
             found = true;
             p->cantidad++;
             cantidad = p->cantidad;
+            liberar_pokemon_mapeado(this_pokemon);
+            this_pokemon = p;
             break;
         }
     }
