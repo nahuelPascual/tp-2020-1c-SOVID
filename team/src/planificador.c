@@ -71,8 +71,11 @@ static void planificar(){
                 // acaba de concretar un intercambio
                 if (entrenador_planificado->deadlock) {
                     t_entrenador* otro_entrenador = entrenador_get(entrenador_planificado->intercambio->id_otro_entrenador);
-                    entrenador_planificado->deadlock = otro_entrenador->deadlock = false;
+                    entrenador_planificado->deadlock = false;
+                    if (otro_entrenador->intercambio == NULL) otro_entrenador->deadlock = false;
+                    else otro_entrenador->intercambio->entrego_pokemon = entrenador_planificado->intercambio->entrego_pokemon;
                     free(entrenador_planificado->intercambio); // solo libero t_intercambio porque pokemons y ubicacion pertenecen a los entrenadores
+                    entrenador_planificado->intercambio = NULL;
                     planificador_verificar_deadlock_exit(entrenador_planificado);
                     planificador_verificar_deadlock_exit(otro_entrenador);
                 } else {
@@ -102,9 +105,7 @@ void planificador_encolar_ready(t_entrenador* e) {
 }
 
 void planificador_verificar_deadlock_exit(t_entrenador* e) {
-    logs_inicio_deteccion_deadlock();
     if (e->estado == EXIT && list_all_satisfy(entrenador_get_all(), (void*)entrenador_cumplio_objetivos)) {
-        logs_deadlock(false);
         log_debug(default_logger, "Todos los objetivos del team fueron cumplidos!");
         metricas_calcular();
         // TODO cerrar proceso por objetivo global cumplido
@@ -114,15 +115,9 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
     t_entrenador* otro_entrenador = NULL;
     pthread_mutex_lock(&mx_entrenadores);
     if (e->estado == BLOCKED_FULL && (otro_entrenador = deadlock_detectar(e)) != NULL) {
-        logs_deadlock(true);
         log_debug(default_logger, "Se planifica al entrenador #%d hacia la posicion (%d, %d) para resolver DEADLOCK con entrenador #%d",
                 e->id, otro_entrenador->posicion->x, otro_entrenador->posicion->y, otro_entrenador->id);
-        e->deadlock = otro_entrenador->deadlock = true;
-        metricas_add_deadlock();
         planificador_encolar_ready(e);
-    }
-    else{
-        logs_deadlock(false);
     }
     pthread_mutex_unlock(&mx_entrenadores);
 }

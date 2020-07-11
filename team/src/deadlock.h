@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <commons/collections/list.h>
 #include "entrenador.h"
+#include "metricas.h"
 
 t_entrenador* deadlock_detectar(t_entrenador*);
 

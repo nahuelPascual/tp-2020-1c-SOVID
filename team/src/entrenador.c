@@ -8,6 +8,7 @@ extern t_log* default_logger;
 
 static t_list* entrenadores;
 static t_list* sem_entrenadores;
+const int COSTO_INTERCAMBIO = 5;
 
 static int calcular_distancia(t_coord*, t_coord*);
 static void avanzar(t_entrenador*);
@@ -79,8 +80,7 @@ void entrenador_init_list(t_list* nuevos_entrenadores) {
 
 t_entrenador* entrenador_get_libre_mas_cercano(t_coord* posicion_buscada) {
     t_list* disponibles = get_disponibles();
-    if (list_size(disponibles) == 0) return NULL;
-    int menor = 10000, entrenador_mas_cercano;
+    int menor = 10000, entrenador_mas_cercano = -1;
     for (int i=0 ; i<list_size(disponibles) ; i++) {
         t_entrenador* entrenador = list_get(disponibles, i);
         int actual = calcular_distancia(entrenador->posicion, posicion_buscada);
@@ -90,9 +90,15 @@ t_entrenador* entrenador_get_libre_mas_cercano(t_coord* posicion_buscada) {
         }
     }
     list_destroy(disponibles);
+
+    if (entrenador_mas_cercano < 0) {
+        return NULL;
+    }
+
     t_entrenador* e = (t_entrenador*) list_get(entrenadores, entrenador_mas_cercano);
     log_debug(default_logger, "Se planifica al entrenador #%d en (%d, %d) hacia la posicion (%d, %d)",
             e->id, e->posicion->x, e->posicion->y, posicion_buscada->x, posicion_buscada->y);
+
     return e;
 }
 
@@ -131,6 +137,7 @@ void entrenador_execute(t_entrenador* e) {
         if (en_camino(e)) {
             avanzar(e);
         } else if (e->deadlock) {
+            log_debug(default_logger, "Realizando intercambio...");
             if (--e->intercambio->remaining_intercambio < 1) {
                 realizar_intercambio(e);
                 consumir_quantum_restante(e->id);
@@ -258,9 +265,9 @@ void entrenador_asignar_objetivo(t_entrenador* e) {
         e->pokemon_buscado = encontrar_pokemon_cercano(e, objetivos_asignables);
     }
 
-    free(objetivos);
-    free(objetivos_localizados);
-    free(objetivos_asignables);
+    list_destroy(objetivos);
+    list_destroy(objetivos_localizados);
+    list_destroy(objetivos_asignables);
 }
 
 static void consumir_quantum_restante(int id) {
