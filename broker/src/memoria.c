@@ -30,6 +30,7 @@ void memoria_liberar_particion(t_particion* particion) {
 t_memoria* memoria_crear(
     int tamanio_minimo_particion,
     int tamanio_maximo_memoria,
+    t_tipo_esquema_administracion tipo_esquema_administracion,
     t_tipo_algoritmo_ocupado tipo_algoritmo_ocupado,
     t_tipo_algoritmo_desocupado tipo_algoritmo_desocupado,
     int frecuencia_compactacion
@@ -39,10 +40,11 @@ t_memoria* memoria_crear(
     memoria->data = malloc(tamanio_maximo_memoria);
 
     memoria->tamanio_minimo_particion = tamanio_minimo_particion;
+    memoria->tipo_esquema_administracion = tipo_esquema_administracion;
     memoria->tipo_algoritmo_ocupado = tipo_algoritmo_ocupado;
     memoria->tipo_algoritmo_desocupado = tipo_algoritmo_desocupado;
     memoria->frecuencia_compactacion = frecuencia_compactacion;
-    memoria->contador_busquedas_fallidas = 0;
+    memoria->contador_particiones_desocupadas = 0;
 
     memoria->particiones = list_create();
     list_add(memoria->particiones, memoria_crear_particion(0, tamanio_maximo_memoria));
@@ -91,16 +93,19 @@ t_particion* memoria_buscar_particion_libre_con(t_memoria* memoria, int tamanio)
 }
 
 void memoria_dividir_particion_si_es_mas_grande_que(t_memoria* memoria, t_particion* particion, int tamanio) {
-    int tamanio_minimo = fmax(tamanio, memoria->tamanio_minimo_particion);
+    int potencia_de_2_si_corresponde = memoria->tipo_esquema_administracion == BUDDY_SYSTEM ? get_siguiente_potencia_de_2(tamanio) : tamanio;
+    int tamanio_minimo = fmax(potencia_de_2_si_corresponde, memoria->tamanio_minimo_particion);
 
-    if(particion->tamanio > tamanio_minimo) {
+    while(particion->tamanio > tamanio_minimo) {
         int indice = list_index_of(memoria->particiones, particion);
 
-        t_particion* nueva_particion = memoria_crear_particion(particion->base + tamanio_minimo, particion->tamanio - tamanio_minimo);
+        int tamanio_correcto = memoria->tipo_esquema_administracion == BUDDY_SYSTEM ? particion->tamanio / 2 : tamanio_minimo;
+
+        t_particion* nueva_particion = memoria_crear_particion(particion->base + tamanio_correcto, particion->tamanio - tamanio_correcto);
 
         list_add_in_index(memoria->particiones, indice + 1, nueva_particion);
 
-        particion->tamanio = tamanio_minimo;
+        particion->tamanio = tamanio_correcto;
     }
 }
 
@@ -151,16 +156,17 @@ void memoria_desocupar_particion(t_memoria* memoria, t_particion* particion) {
     memoria_consolidar(memoria);
 }
 
-void memoria_aumentar_contador_busquedas_fallidas(t_memoria* memoria) {
-    memoria->contador_busquedas_fallidas++;
+void memoria_aumentar_contador_particiones_desocupadas(t_memoria* memoria) {
+    memoria->contador_particiones_desocupadas++;
 }
 
-void memoria_resetear_contador_busquedas_fallidas(t_memoria* memoria){
-    memoria->contador_busquedas_fallidas = 0;
+void memoria_resetear_contador_particiones_desocupadas(t_memoria* memoria){
+    memoria->contador_particiones_desocupadas = 0;
 }
 
 bool memoria_corresponde_compactar(t_memoria* memoria) {
-    return memoria->frecuencia_compactacion == memoria->contador_busquedas_fallidas;
+    return memoria->tipo_esquema_administracion != BUDDY_SYSTEM
+    && memoria->frecuencia_compactacion == memoria->contador_particiones_desocupadas;
 }
 
 void memoria_compactar(t_memoria* memoria) {
@@ -185,7 +191,7 @@ void memoria_compactar(t_memoria* memoria) {
         }
 
         void* ubicacion_nueva_info = memoria->data + particion->base;
-        memcpy(ubicacion_nueva_info, ubicacion_anterior_info, particion->tamanio);
+        memmove(ubicacion_nueva_info, ubicacion_anterior_info, particion->tamanio);
     }
 
     memoria_consolidar(memoria);
@@ -197,11 +203,24 @@ void memoria_consolidar(t_memoria* memoria) {
         t_particion* particion = list_get(memoria->particiones, i);
         t_particion* particion_siguiente = list_get(memoria->particiones, i + 1);
 
-        if(particion->esta_libre && particion_siguiente->esta_libre) {
+        bool particiones_dinamicas_o_son_buddies = memoria->tipo_esquema_administracion == BUDDY_SYSTEM
+            ? memoria_son_particiones_buddies(particion, particion_siguiente)
+            : true;
+
+        if(particion->esta_libre && particion_siguiente->esta_libre && particiones_dinamicas_o_son_buddies) {
             particion->tamanio += particion_siguiente->tamanio;
             list_remove_and_destroy_element(memoria->particiones, i + 1, (void*) memoria_liberar_particion);
+
+            if(memoria->tipo_esquema_administracion == BUDDY_SYSTEM)
+                i = 0;
         }
         else
             i++;
     }
+}
+
+bool memoria_son_particiones_buddies(t_particion* una_particion, t_particion* otra_particion) {
+    return una_particion->tamanio == otra_particion->tamanio
+    && una_particion->base == (otra_particion->base ^ una_particion->tamanio)
+    && otra_particion->base == (una_particion->base ^ otra_particion->tamanio);
 }

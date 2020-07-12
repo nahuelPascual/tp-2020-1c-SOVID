@@ -54,7 +54,7 @@ void probar_compactacion(t_memoria* memoria) {
 
 void test_memoria_sin_vaciado() {
 
-    t_memoria* memoria = memoria_crear(0, 1024, FIRST_FIT, FIFO, 3);
+    t_memoria* memoria = memoria_crear(0, 1024, PARTICIONES_DINAMICAS, FIRST_FIT, FIFO, 3);
 
     printf("1° TEST: Consolido lista previamente ordenada\n\n");
 
@@ -210,7 +210,7 @@ void test_memoria_con_vaciado() {
     printf("1° TEST: En una memoria con espacio para 3 mensajes, cuando se llena tengo que\n"
            "         desocupar particiones por algoritmo FIFO\n\n");
 
-    t_memoria* memoria1 = memoria_crear(0, 80, FIRST_FIT, FIFO, 3);
+    t_memoria* memoria1 = memoria_crear(0, 80, PARTICIONES_DINAMICAS, FIRST_FIT, FIFO, 3);
     buzon->memoria = memoria1;
 
     for(int i = 0; i < 5; i++) {
@@ -226,7 +226,7 @@ void test_memoria_con_vaciado() {
     printf("2° TEST: En una memoria con espacio para 3 mensajes, cuando se llena tengo que\n"
            "         desocupar particiones por algoritmo LRU\n\n");
 
-    t_memoria* memoria2 = memoria_crear(0, 80, FIRST_FIT, LRU, 3);
+    t_memoria* memoria2 = memoria_crear(0, 80, PARTICIONES_DINAMICAS, FIRST_FIT, LRU, 3);
     buzon->memoria = memoria2;
 
     for(int i = 0; i < 4; i++) {
@@ -242,6 +242,38 @@ void test_memoria_con_vaciado() {
             memoria_get_direccion_fisica_de(buzon->memoria, primera_particion);
         }
     }
+}
+
+void test_buddy_system() {
+    printf("TEST: la funcion recibe 2 particiones que son buddies\n\n");
+    t_particion* particion1 = memoria_crear_particion(0, 32);
+    t_particion* particion2 = memoria_crear_particion(32, 32);
+    if(memoria_son_particiones_buddies(particion1, particion2))
+        printf("Esta andando bien :)\n");
+    else
+        printf("La puta madre, no de nuevo :(\n");
+    printf("\n");
+    fflush(stdout);
+
+    printf("TEST: la funcion recibe 2 particiones con distinto tamanio\n\n");
+    t_particion* particion3 = memoria_crear_particion(0, 32);
+    t_particion* particion4 = memoria_crear_particion(32, 64);
+    if(!memoria_son_particiones_buddies(particion3, particion4))
+        printf("Esta andando bien :)\n");
+    else
+        printf("La puta madre, no de nuevo :(\n");
+    printf("\n");
+    fflush(stdout);
+
+    printf("TEST: la funcion recibe 2 particiones con el mismo tamanio pero no son buddies\n\n");
+    t_particion* particion5 = memoria_crear_particion(0, 32);
+    t_particion* particion6 = memoria_crear_particion(64, 32);
+    if(!memoria_son_particiones_buddies(particion5, particion6))
+        printf("Esta andando bien :)\n");
+    else
+        printf("La puta madre, no de nuevo :(\n");
+    printf("\n");
+    fflush(stdout);
 }
 
 #endif /* TEST_GESTION_MEMORIA_C_ */

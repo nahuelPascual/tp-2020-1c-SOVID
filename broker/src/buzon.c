@@ -10,7 +10,7 @@
 t_buzon* buzon_crear() {
     t_buzon* buzon = malloc(sizeof(t_buzon));
     buzon->administrador_colas = administrador_colas_crear();
-    buzon->memoria = memoria_crear(0, 1024, FIRST_FIT, FIFO, 3);
+    buzon->memoria = memoria_crear(0, 1024, PARTICIONES_DINAMICAS, FIRST_FIT, FIFO, 3);
 
     return buzon;
 }
@@ -54,19 +54,21 @@ void buzon_despachar_mensaje_de(t_buzon* buzon, t_cola* cola) {
 
 void buzon_vaciar_hasta_tener(t_buzon* buzon, int espacio) {
     while(!memoria_existe_particion_libre_con(buzon->memoria, espacio)) {
-        memoria_aumentar_contador_busquedas_fallidas(buzon->memoria);
-
         if(memoria_corresponde_compactar(buzon->memoria)) {
             memoria_compactar(buzon->memoria);
 
-            memoria_resetear_contador_busquedas_fallidas(buzon->memoria);
-        }
-        else {
-            t_particion* particion_victima = memoria_get_particion_a_desocupar(buzon->memoria);
+            memoria_resetear_contador_particiones_desocupadas(buzon->memoria);
 
-            administrador_colas_remove_and_destroy_mensaje_despachable_by_id(buzon->administrador_colas, particion_victima->id_mensaje_asociado);
-            memoria_desocupar_particion(buzon->memoria, particion_victima);
+            if(memoria_existe_particion_libre_con(buzon->memoria, espacio))
+                break;
         }
+
+        t_particion* particion_victima = memoria_get_particion_a_desocupar(buzon->memoria);
+
+        administrador_colas_remove_and_destroy_mensaje_despachable_by_id(buzon->administrador_colas, particion_victima->id_mensaje_asociado);
+        memoria_desocupar_particion(buzon->memoria, particion_victima);
+
+        memoria_aumentar_contador_particiones_desocupadas(buzon->memoria);
     }
 }
 

@@ -15,5 +15,6 @@
 
 void test_memoria_sin_vaciado();
 void test_memoria_con_vaciado();
+void test_buddy_system();
 
 #endif /* TEST_GESTION_MEMORIA_H_ */

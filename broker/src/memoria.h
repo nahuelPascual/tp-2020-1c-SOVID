@@ -14,6 +14,12 @@
 #include <delibird-commons/utils/paquete.h>
 #include <delibird-commons/utils/list.h>
 
+#include "utils.h"
+
+typedef enum {
+    PARTICIONES_DINAMICAS, BUDDY_SYSTEM
+} t_tipo_esquema_administracion;
+
 typedef enum {
     FIRST_FIT, BEST_FIT
 } t_tipo_algoritmo_ocupado;
@@ -38,10 +44,11 @@ typedef struct {
     void* data;
 
     int tamanio_minimo_particion;
+    t_tipo_esquema_administracion tipo_esquema_administracion;
     t_tipo_algoritmo_ocupado tipo_algoritmo_ocupado;
     t_tipo_algoritmo_desocupado tipo_algoritmo_desocupado;
     int frecuencia_compactacion;
-    int contador_busquedas_fallidas;
+    int contador_particiones_desocupadas;
 
     t_list* particiones;
 } t_memoria;
@@ -52,6 +59,7 @@ void memoria_liberar_particion(t_particion* particion);
 t_memoria* memoria_crear(
     int tamanio_minimo_particion,
     int tamanio_maximo_memoria,
+    t_tipo_esquema_administracion tipo_esquema_administracion,
     t_tipo_algoritmo_ocupado tipo_algoritmo_ocupado,
     t_tipo_algoritmo_desocupado tipo_algoritmo_desocupado,
     int frecuencia_compactacion
@@ -66,11 +74,13 @@ void memoria_asignar_paquete_a_la_particion(t_memoria* memoria, t_paquete* paque
 t_particion* memoria_get_particion_a_desocupar(t_memoria* memoria);
 void memoria_desocupar_particion(t_memoria* memoria, t_particion* particion);
 
-void memoria_aumentar_contador_busquedas_fallidas(t_memoria* memoria);
-void memoria_resetear_contador_busquedas_fallidas(t_memoria* memoria);
+void memoria_aumentar_contador_particiones_desocupadas(t_memoria* memoria);
+void memoria_resetear_contador_particiones_desocupadas(t_memoria* memoria);
 
 bool memoria_corresponde_compactar(t_memoria* memoria);
 void memoria_compactar(t_memoria* memoria);
 void memoria_consolidar(t_memoria* memoria);
+
+bool memoria_son_particiones_buddies(t_particion* una_particion, t_particion* otra_particion);
 
 #endif /* MEMORIA_H_ */
