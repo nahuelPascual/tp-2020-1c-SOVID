@@ -18,7 +18,7 @@ typedef struct {
 } t_mensaje_enviado;
 
 void sender_init_mensajes_esperando_respuesta();
-void enviar_get_pokemon(char* pokemon, void* cantidad);
+void enviar_get_pokemon(char* pokemon);
 bool enviar_catch_pokemon(int id_entrenador, t_pokemon_mapeado* pokemon);
 bool is_respuesta_esperada(int id_mensaje_correlativo);
 t_mensaje_enviado* get_mensaje_enviado(int id_mensaje);

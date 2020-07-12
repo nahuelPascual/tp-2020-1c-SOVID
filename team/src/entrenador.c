@@ -206,6 +206,7 @@ static bool entrenador_is_full(t_entrenador* e) {
 
 void entrenador_verificar_objetivos(t_entrenador* e) {
     if (!entrenador_is_full(e)) {
+        if (e->estado == NEW) return;
         logs_transicion(e, BLOCKED_IDLE);
         e->estado = BLOCKED_IDLE;
         log_debug(default_logger, "Entrenador #%d paso a estado BLOCKED_IDLE", e->id);
@@ -518,6 +519,10 @@ void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado){
                     log_info(logger, "Entrenador: %d sigue en BLOCKED_FULL despues de realizar un intercambio", entrenador->id);
                     break;
 
+                case NEW:
+                    log_info(logger, "Entrenador: %d pasa a BLOCKED_FULL desde NEW por iniciar sin espacio para nuevas capturas", entrenador->id);
+                    break;
+
                 default:
                     logs_error_transicion(entrenador->estado, "BLOCKED_FULL");
                     break;
@@ -537,6 +542,11 @@ void logs_transicion(t_entrenador* entrenador, t_estado nuevoEstado){
             case EXECUTE:
                 log_info(logger, "Entrenador: %d pasa a EXIT desde EXECUTE por resolucion del intercambio y finalizacion de sus objetivos", entrenador->id);
                 break;
+
+            case NEW:
+                log_info(logger, "Entrenador: %d pasa a EXIT desde NEW por iniciar con sus objetivos cumplidos", entrenador->id);
+                break;
+
             default:
                 logs_error_transicion(entrenador->estado, "EXIT");
             break;

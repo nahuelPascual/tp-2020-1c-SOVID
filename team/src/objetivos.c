@@ -16,14 +16,12 @@ static void log_objetivos_globales();
 static void actualizar_objetivos_globales(void* entrenador);
 static void actualizar_capturados(void*);
 
-t_dictionary* calcular_objetivos_globales(t_list* entrenadores) {
+t_dictionary* objetivos_globales_init(t_list* entrenadores) {
     mapa_objetivos = dictionary_create();
     list_iterate(entrenadores, &actualizar_objetivos_globales);
 
     atrapados = dictionary_create();
     list_iterate(entrenadores, actualizar_capturados);
-
-    sender_init_mensajes_esperando_respuesta();
 
     log_objetivos_globales(); //debug logging
 

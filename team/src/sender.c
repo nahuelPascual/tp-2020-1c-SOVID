@@ -14,7 +14,7 @@ void sender_init_mensajes_esperando_respuesta() {
     mensajes_esperando_respuesta = list_create();
 }
 
-void enviar_get_pokemon(char* pokemon, void* cantidad) {
+void enviar_get_pokemon(char* pokemon) {
 	t_get_pokemon* mensaje = mensaje_crear_get_pokemon(pokemon);
 	t_paquete* paquete = paquete_from_get_pokemon(mensaje);
 

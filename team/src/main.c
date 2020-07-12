@@ -25,19 +25,25 @@ t_log* default_logger;
 void crear_hilos_entrenador();
 t_listener_config* crear_hilos_suscriptor();
 t_listener_config* crear_gameboy_listener();
+void verificar_estado_inicial_entrenadores();
+void enviar_gets_al_broker();
 
 int main(int argc, char **argv) {
     config_team_init();
-    t_dictionary* objetivos_globales = calcular_objetivos_globales(entrenador_get_all());
-
+    objetivos_globales_init(entrenador_get_all());
+    sender_init_mensajes_esperando_respuesta();
     init_pokemon_map();
     crear_hilos_entrenador();
+    pthread_t planificador = planificador_init();
+
+    verificar_estado_inicial_entrenadores();
+
     t_listener_config* suscriptor_config = crear_hilos_suscriptor();
     t_listener_config* gameboy_config = crear_gameboy_listener();
-    // se envia un get_pokemon por cada especie de pokemon requerida
-    dictionary_iterator(objetivos_globales, (void*)enviar_get_pokemon);
 
-    planificador_init();
+    enviar_gets_al_broker();
+
+    pthread_join(planificador, NULL);
 
     liberar_config_team();
     log_destroy(default_logger);
@@ -79,4 +85,15 @@ t_listener_config* crear_gameboy_listener(){
 
     ipc_crear_gameboy_listener(config);
     return config;
+}
+
+void verificar_estado_inicial_entrenadores() {
+    list_iterate(entrenador_get_all(), (void*)entrenador_verificar_objetivos);
+    list_iterate(entrenador_get_all(), (void*)planificador_verificar_deadlock_exit);
+}
+
+void enviar_gets_al_broker() {
+    t_list* objetivos = objetivos_get_especies_pendientes();
+    list_iterate(objetivos, (void*)enviar_get_pokemon);
+    list_destroy(objetivos);
 }

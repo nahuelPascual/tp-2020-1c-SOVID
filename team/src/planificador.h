@@ -16,7 +16,7 @@
 #include "metricas.h"
 #include "deadlock.h"
 
-void planificador_init();
+pthread_t planificador_init();
 void planificador_encolar_ready(t_entrenador*);
 void planificador_verificar_deadlock_exit(t_entrenador*);
 void planificador_admitir(t_entrenador*);

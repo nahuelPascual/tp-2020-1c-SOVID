@@ -24,13 +24,16 @@ static bool es_SJF();
 static t_entrenador* pop();
 static void push(t_entrenador*);
 
-void planificador_init() {
+pthread_t planificador_init() {
     sem_init(&sem_entrenadores_planificables, 0, 0);
     algoritmo = normalizar_algoritmo_planificacion(config_team->algoritmo_planificacion);
     cola_ready = queue_create();
     pthread_mutex_init(&mx_cola_ready, NULL);
     alpha = config_team->alpha;
-    planificar();
+
+    pthread_t planificador;
+    pthread_create(&planificador, NULL, (void*)planificar, NULL);
+    return planificador;
 }
 
 static void planificar(){
@@ -108,8 +111,7 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
     if (e->estado == EXIT && list_all_satisfy(entrenador_get_all(), (void*)entrenador_cumplio_objetivos)) {
         log_debug(default_logger, "Todos los objetivos del team fueron cumplidos!");
         metricas_calcular();
-        // TODO cerrar proceso por objetivo global cumplido
-        exit(0);
+        pthread_exit(0);
     }
 
     t_entrenador* otro_entrenador = NULL;
