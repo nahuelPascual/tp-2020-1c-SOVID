@@ -28,7 +28,7 @@ void ipc_crear_gameboy_listener(t_listener_config*);
 int ipc_enviar_broker(t_paquete*, char*, char*);
 void ipc_enviar_ack(uint32_t, uint32_t, int);
 int ipc_enviar_suscripcion(t_tipo_mensaje, uint32_t, uint32_t, t_listener_config*);
-void ipc_suscribirse_a(t_tipo_mensaje, uint32_t, uint32_t, t_listener_config*);
+void ipc_suscribirse_a(t_listener_config*);
 
 
 #endif //COMUNICATION_H_

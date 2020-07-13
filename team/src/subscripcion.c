@@ -116,7 +116,7 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
     paquete_liberar(paquete);
 }
 
-void escuchar_a(int con) {
+int escuchar_a(int con) {
     while(ipc_hay_datos_para_recibir_de(con)){
         t_paquete* paquete = ipc_recibir_de(con);
         logger_recibido(logger, paquete);
@@ -141,4 +141,5 @@ void escuchar_a(int con) {
         }
         ipc_enviar_ack(config_team->id, paquete->header->id_mensaje, con);
     }
+    return 1;
 }

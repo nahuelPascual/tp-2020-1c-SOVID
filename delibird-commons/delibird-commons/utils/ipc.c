@@ -24,13 +24,16 @@ int ipc_escuchar_en(char* ip, char* puerto) {
 
     for(p = servinfo; p != NULL; p = p->ai_next) {
 
-        if((socket_servidor = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
+        if((socket_servidor = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+            log_warning(logger, "Error en la creacion del socket");
             continue;
+        }
 
         int i = 1;
         setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEPORT, &i, sizeof(i));
         if(bind(socket_servidor, p->ai_addr, p->ai_addrlen) == -1) {
             close(socket_servidor);
+            log_warning(logger, "Error al intentar asignar la direccion al socket");
             continue;
         }
 
@@ -104,7 +107,7 @@ int ipc_conectarse_a(char *ip, char* puerto) {
     int socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
 
     if(connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) == -1)
-        printf("error conectando al socket\n");
+        log_warning(logger, "Fallo al intentar establecer conexion");
 
     freeaddrinfo(server_info);
 
@@ -127,28 +130,24 @@ int ipc_enviar_suscripcion(t_tipo_mensaje tipo_mensaje, uint32_t id_suscriptor, 
 
     int broker = ipc_enviar_broker(p, config->ip, config->puerto);
 
-    if(broker == -1){
-       logs_broker_reintento();
-    /*
-       while (broker == -1) {
-       TODO retry: va a haber que hacer unos cambios, para que el hilo principal no se bloquee reintentando
-       if(broker != -1){
-           log_info(logger, "Reconexion con el Broker");
-       }
-    }
-    */
-    }
     suscripcion_liberar(s);
     paquete_liberar(p);
 
     return broker;
 }
 
-void ipc_suscribirse_a(t_tipo_mensaje tipo_mensaje, uint32_t id_suscriptor, uint32_t tiempo_conexion, t_listener_config* config) {
-    pthread_t thread;
-    int broker = ipc_enviar_suscripcion(tipo_mensaje, id_suscriptor, tiempo_conexion, config);
-    pthread_create(&thread, NULL, (void*)config->handler, (void*)broker);
-    pthread_detach(thread);
+void ipc_suscribirse_a(t_listener_config* config) {
+    int error, broker;
+    do {
+        broker = ipc_enviar_suscripcion(config->tipo_mensaje, config->id, 0, config);
+        if (broker != -1) {
+            log_info(logger, "Conexion establecida con el Broker");
+            error = config->handler(broker);
+            log_warning(logger, "Se perdio la conexion con Broker");
+        }
+        sleep(config->reintento_conexion);
+        logs_broker_reintento();
+    } while (broker == -1 || error);
 }
 
 int ipc_enviar_broker(t_paquete* p, char* ip, char* puerto) {

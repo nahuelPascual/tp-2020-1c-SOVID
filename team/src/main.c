@@ -23,7 +23,7 @@ t_log* logger;
 t_log* default_logger;
 
 void crear_hilos_entrenador();
-t_listener_config* crear_hilos_suscriptor();
+t_listener_config* crear_hilo_suscriptor(t_tipo_mensaje);
 t_listener_config* crear_gameboy_listener();
 void verificar_estado_inicial_entrenadores();
 void enviar_gets_al_broker();
@@ -38,7 +38,9 @@ int main(int argc, char **argv) {
 
     verificar_estado_inicial_entrenadores();
 
-    t_listener_config* suscriptor_config = crear_hilos_suscriptor();
+    t_listener_config* appeared = crear_hilo_suscriptor(APPEARED_POKEMON);
+    t_listener_config* localized = crear_hilo_suscriptor(LOCALIZED_POKEMON);
+    t_listener_config* caught = crear_hilo_suscriptor(CAUGHT_POKEMON);
     t_listener_config* gameboy_config = crear_gameboy_listener();
 
     enviar_gets_al_broker();
@@ -48,7 +50,9 @@ int main(int argc, char **argv) {
     liberar_config_team();
     log_destroy(default_logger);
     log_destroy(logger);
-    free(suscriptor_config);
+    free(appeared);
+    free(localized);
+    free(caught);
     free(gameboy_config);
   
     return EXIT_SUCCESS;
@@ -65,15 +69,19 @@ void crear_hilos_entrenador() {
     list_iterate(entrenador_get_all(), (void*)_crear_hilo);
 }
 
-t_listener_config* crear_hilos_suscriptor() {
+t_listener_config* crear_hilo_suscriptor(t_tipo_mensaje mensaje) {
     t_listener_config* config = malloc(sizeof(t_listener_config));
+    config->id = config_team->id;
+    config->tipo_mensaje = mensaje;
     config->ip = config_team->ip_broker;
     config->puerto = config_team->puerto_broker;
     config->handler = escuchar_a;
+    config->reintento_conexion = config_team->tiempo_reconexion;
 
-    ipc_suscribirse_a(LOCALIZED_POKEMON, config_team->id, tiempo_conexion_default, config);
-    ipc_suscribirse_a(APPEARED_POKEMON, config_team->id, tiempo_conexion_default, config);
-    ipc_suscribirse_a(CAUGHT_POKEMON, config_team->id, tiempo_conexion_default, config);
+    pthread_t thread;
+    pthread_create(&thread, NULL, (void*)ipc_suscribirse_a, config);
+    pthread_detach(thread);
+
     return config;
 }
 

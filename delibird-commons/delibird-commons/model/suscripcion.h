@@ -19,9 +19,12 @@ typedef struct {
 } t_suscripcion;
 
 typedef struct {
+    uint32_t id;
+    t_tipo_mensaje tipo_mensaje;
     char* ip;
     char* puerto;
-    void (*handler) (int);
+    int (*handler) (int);
+    int reintento_conexion;
 } t_listener_config;
 
 t_suscripcion* suscripcion_crear(t_tipo_mensaje tipo_mensaje, uint32_t id_suscriptor, uint32_t tiempo);

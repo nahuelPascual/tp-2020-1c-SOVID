@@ -19,6 +19,6 @@
 #include "configuration.h"
 #include "planificador.h"
 
-void escuchar_a(int);
+int escuchar_a(int);
 
 #endif //TEAM_SUBSCRIPCION_H
