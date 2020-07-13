@@ -5,6 +5,7 @@
 #ifndef COMUNICATION_H_
 #define COMUNICATION_H_
 
+#include <sys/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

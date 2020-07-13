@@ -27,6 +27,8 @@ int ipc_escuchar_en(char* ip, char* puerto) {
         if((socket_servidor = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
             continue;
 
+        int i = 1;
+        setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEPORT, &i, sizeof(i));
         if(bind(socket_servidor, p->ai_addr, p->ai_addrlen) == -1) {
             close(socket_servidor);
             continue;
