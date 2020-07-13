@@ -12,7 +12,7 @@ static pthread_mutex_t mx_pokemon;
 static t_pokemon_mapeado* new_pokemon(char* nombre, int cantidad, t_coord* posicion);
 static void liberar_lista_mapeada(void*);
 static void liberar_pokemon_mapeado(void*);
-static void add_pokemon_existente(t_pokemon_mapeado* this_pokemon);
+static t_pokemon_mapeado* add_pokemon_existente(t_pokemon_mapeado* this_pokemon);
 
 void init_pokemon_map() {
     pokemon_localizados = dictionary_create();
@@ -50,7 +50,7 @@ t_pokemon_mapeado* pokemon_agregar_al_mapa(char* nombre, int cantidad, t_coord* 
         dictionary_put(pokemon_localizados, nombre, list);
         log_debug(default_logger, "Se agrego un nuevo pokemon (%s) al mapa en la posicion (%d, %d)", nombre, posicion->x, posicion->y);
     } else {
-        add_pokemon_existente(this_pokemon);
+        this_pokemon = add_pokemon_existente(this_pokemon);
     }
     pthread_mutex_unlock(&mx_pokemon);
 
@@ -65,8 +65,11 @@ void pokemon_sacar_del_mapa(char* nombre, t_coord* posicion) {
         if (p->ubicacion->x == posicion->x && p->ubicacion->y == posicion->y) {
             p->cantidad--;
             if (p->cantidad==0) {
-                if (list_size(ubicaciones_pokemon) == 1) dictionary_remove(pokemon_localizados, nombre); // si es la unica ubicacion que queda, se borra pokemon del mapa
-                list_destroy_and_destroy_elements(ubicaciones_pokemon, (void*)liberar_pokemon_mapeado);
+                if (list_size(ubicaciones_pokemon) == 1) {
+                    dictionary_remove(pokemon_localizados, nombre); // si es la unica ubicacion que queda, se borra pokemon del mapa
+                    liberar_lista_mapeada(ubicaciones_pokemon);
+                }
+                else list_remove_and_destroy_element(ubicaciones_pokemon, i, (void*)liberar_pokemon_mapeado);
             }
             break;
         }
@@ -96,12 +99,13 @@ bool is_pokemon_conocido(char* nombre) {
     return b;
 }
 
-static void add_pokemon_existente(t_pokemon_mapeado* this_pokemon) {
-    t_list* l = (t_list*) dictionary_get(pokemon_localizados, this_pokemon->pokemon);
+static t_pokemon_mapeado* add_pokemon_existente(t_pokemon_mapeado* this_pokemon) {
+    t_list* localizados = (t_list*) dictionary_get(pokemon_localizados, this_pokemon->pokemon);
+
     bool found = false;
     int cantidad = 0;
-    for (int i=0 ; i<list_size(l) ; i++) {
-        t_pokemon_mapeado* p = (t_pokemon_mapeado*) list_get(l, i);
+    for (int i=0 ; i<list_size(localizados) ; i++) {
+        t_pokemon_mapeado* p = (t_pokemon_mapeado*) list_get(localizados, i);
         if (p->ubicacion->x == this_pokemon->ubicacion->x && p->ubicacion->y == this_pokemon->ubicacion->y) {
             found = true;
             p->cantidad++;
@@ -111,10 +115,13 @@ static void add_pokemon_existente(t_pokemon_mapeado* this_pokemon) {
             break;
         }
     }
+
     if (!found) {
-        list_add(l, this_pokemon);
+        list_add(localizados, this_pokemon);
         cantidad = this_pokemon->cantidad;
     }
     log_debug(default_logger, "Se agrego un %s en (%d, %d). Ahora hay un total de %d en esa posicion",
         this_pokemon->pokemon, this_pokemon->ubicacion->x, this_pokemon->ubicacion->y, cantidad);
+
+    return this_pokemon;
 }

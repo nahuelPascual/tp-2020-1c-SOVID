@@ -124,13 +124,27 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
     pthread_mutex_unlock(&mx_entrenadores);
 }
 
+void planificador_reasignar(char* pokemon) {
+    log_debug(default_logger, "Se intenta replanificar la captura de %s", pokemon);
+    pthread_mutex_lock(&mx_entrenadores);
+    t_entrenador* entrenador = entrenador_asignar(pokemon);
+    if (entrenador == NULL) return;
+
+    log_debug(default_logger, "Se planifica al entrenador #%d en (%d, %d) hacia la posicion (%d, %d)",
+            entrenador->id, entrenador->posicion->x, entrenador->posicion->y,
+            entrenador->pokemon_buscado->ubicacion->x, entrenador->pokemon_buscado->ubicacion->y);
+
+    planificador_encolar_ready(entrenador);
+    pthread_mutex_unlock(&mx_entrenadores);
+}
+
 void planificador_admitir(t_entrenador* e) {
     pthread_mutex_lock(&mx_entrenadores);
     if (e->estado != BLOCKED_IDLE) {
         pthread_mutex_unlock(&mx_entrenadores);
         return;
     }
-    entrenador_asignar_objetivo(e);
+    entrenador_asignar_objetivo_a(e);
     if(e->pokemon_buscado == NULL) {
         log_debug(default_logger, "No se replanifica al entrenador #%d porque no hay mas objetivos disponibles", e->id);
         pthread_mutex_unlock(&mx_entrenadores);

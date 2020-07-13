@@ -22,9 +22,8 @@ static bool en_camino(t_entrenador*);
 static void realizar_intercambio(t_entrenador*);
 static bool queda_quantum(int id);
 static t_pokemon_mapeado* encontrar_pokemon_cercano(t_entrenador*, t_list*);
+static t_list* get_objetivos_asignables();
 static void consumir_quantum_restante(int id);
-
-
 static void log_estado_objetivos(t_entrenador*);
 static void log_algoritmo(t_entrenador* entrenador);
 static void logs_movimiento_entrenador(t_entrenador* entrenador);
@@ -158,6 +157,36 @@ void entrenador_execute(t_entrenador* e) {
     }
 }
 
+t_entrenador* entrenador_asignar(char* pokemon) {
+    t_list* entrenadores = get_disponibles();
+    t_list* especies = list_create();
+    list_add(especies, pokemon);
+
+    int minima_distancia = 999999;
+    t_pokemon_mapeado* objetivo = NULL;
+    t_entrenador* entrenador = NULL;
+    void _calcular_minima_distancia(void* e) {
+        t_entrenador* this_entrenador = (t_entrenador*) e;
+        t_pokemon_mapeado* cercano = encontrar_pokemon_cercano(this_entrenador, especies);
+        int d = calcular_distancia(this_entrenador->posicion, cercano->ubicacion);
+        if (d < minima_distancia) {
+            minima_distancia = d;
+            entrenador = this_entrenador;
+            objetivo = cercano;
+        }
+    }
+    list_iterate(entrenadores, (void*)_calcular_minima_distancia);
+
+    list_destroy(entrenadores);
+    list_destroy(especies);
+
+    if (objetivo == NULL) return NULL;
+
+    entrenador->pokemon_buscado = objetivo;
+
+    return entrenador;
+}
+
 void entrenador_concretar_captura(t_entrenador* e, char* pokemon, t_coord* ubicacion) {
     bool _find(void* obj) {
         t_pokemon_objetivo* objetivo = (t_pokemon_objetivo*) obj;
@@ -243,7 +272,17 @@ bool entrenador_cumplio_objetivos(t_entrenador* e) {
     return list_all_satisfy(e->objetivos, (void*)_cumple_objetivo);
 }
 
-void entrenador_asignar_objetivo(t_entrenador* e) {
+void entrenador_asignar_objetivo_a(t_entrenador* e) {
+    t_list* objetivos_asignables = get_objetivos_asignables();
+
+    if (list_size(objetivos_asignables) > 0) {
+        e->pokemon_buscado = encontrar_pokemon_cercano(e, objetivos_asignables);
+    }
+
+    list_destroy(objetivos_asignables);
+}
+
+static t_list* get_objetivos_asignables() {
     t_list* objetivos = objetivos_get_especies_pendientes();
     t_list* objetivos_localizados = pokemon_filtrar_especies_encontradas(objetivos);
 
@@ -262,17 +301,10 @@ void entrenador_asignar_objetivo(t_entrenador* e) {
     t_list* objetivos_asignables = list_filter(objetivos_localizados, (void*)_es_asignable);
     pthread_mutex_unlock(&mx_atrapados);
 
-    if (list_size(objetivos_asignables) > 0) {
-        e->pokemon_buscado = encontrar_pokemon_cercano(e, objetivos_asignables);
-    }
-
     list_destroy(objetivos);
     list_destroy(objetivos_localizados);
-    list_destroy(objetivos_asignables);
-}
 
-static void consumir_quantum_restante(int id) {
-    while (queda_quantum(id));
+    return objetivos_asignables;
 }
 
 static t_pokemon_mapeado* encontrar_pokemon_cercano(t_entrenador* e, t_list* pokemons) {
@@ -444,6 +476,10 @@ static void log_objetivo(void* elemento){
 static bool queda_quantum(int id) {
     sem_t* sem = list_get(sem_entrenadores, id);
     return sem_trywait(sem) == 0;
+}
+
+static void consumir_quantum_restante(int id) {
+    while (queda_quantum(id));
 }
 
 static void log_algoritmo(t_entrenador* entrenador){

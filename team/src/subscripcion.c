@@ -105,7 +105,8 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
 
     entrenador_verificar_objetivos(entrenador);
     if (entrenador->estado == BLOCKED_IDLE) {
-        planificador_admitir(entrenador);
+        if (!caught_pokemon->is_caught) planificador_reasignar(mensaje->nombre); // se planifica a algun entrenador (el mas cercano) para capturar esta especie en particular
+        planificador_admitir(entrenador); // se replanifica al entrenador, si hubiera mas objetivos asignbles en el mapa
     } else {
         planificador_verificar_deadlock_exit(entrenador);
     }

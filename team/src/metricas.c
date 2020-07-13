@@ -46,7 +46,7 @@ static void log_metricas(t_metricas* m) {
     void _log(char* id, void* ciclos) {
         log_info(logger, "\t\tEntrenador #%s: %d ciclos", id, ciclos);
     }
-//    TODO log_info(logger, "Metricas team %d:", config_team->id);
+    log_info(logger, "Metricas team %d:", config_team->id);
     log_info(logger, "\tCiclos CPU ejecutados: %d", m->ciclos_cpu_totales);
     dictionary_iterator(m->ciclos_entrenador, (void*)_log);
     log_info(logger, "\tCambios de contexto realizados: %d", m->cambios_contexto_totales);

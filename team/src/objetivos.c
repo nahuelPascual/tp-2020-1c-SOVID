@@ -46,7 +46,6 @@ static void actualizar_objetivos_globales(void* entrenador) {
     t_list* objetivos = ((t_entrenador*) entrenador)->objetivos;
     void _actualizar(void* elem){
         t_pokemon_objetivo* objetivo = (t_pokemon_objetivo*) elem;
-        // TODO ANALISIS: ver como garantizamos que no se capturen mas que los requeridos de cada especie (Issue: https://github.com/sisoputnfrba/foro/issues/1722#issuecomment-637854754)
         if(dictionary_has_key(mapa_objetivos, objetivo->nombre)){
             int cant = (int) dictionary_get(mapa_objetivos, objetivo->nombre);
             dictionary_put(mapa_objetivos, objetivo->nombre, (void*) ++cant);
