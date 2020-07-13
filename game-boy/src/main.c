@@ -38,17 +38,19 @@ int main(int argc, char **argv) {
     logger = log_create("log_gameboy.txt", "GAMEBOY", true, LOG_LEVEL_INFO);
 
     t_paquete* paquete;
+    uint32_t tiempo_suscripcion = 0;
     if(string_equals_ignore_case(proceso, "SUSCRIPTOR")) {
-        t_suscripcion* suscripcion = suscripcion_crear(tipo_mensaje, get_id_suscriptor(), atoi(argv[3]));
+        tiempo_suscripcion = atoi(argv[3]);
+        t_suscripcion* suscripcion = suscripcion_crear(tipo_mensaje, get_id_suscriptor(), tiempo_suscripcion);
         paquete = paquete_from_suscripcion(suscripcion);
         ip = get_ip("BROKER");
         puerto = get_puerto("BROKER");
         suscripcion_liberar(suscripcion);
     }
     else {
-        paquete = resolver_mensaje(tipo_mensaje, argv);
+        paquete = resolver_mensaje(proceso, tipo_mensaje, argv);
         if (paquete == NULL) {
-            log_error(logger, "El tipo de mensaje \"%s\" no es valido", nombre_cola);
+            log_error(logger, "ERROR DE CAPA 8");
             exit(EXIT_FAILURE);
         }
         string_to_upper(proceso);
@@ -62,10 +64,23 @@ int main(int argc, char **argv) {
     logger_enviado(logger, paquete);
 
     if(string_equals_ignore_case(proceso, "SUSCRIPTOR")) {
-        while(ipc_hay_datos_para_recibir_de(conexion)) {
-            paquete = ipc_recibir_de(conexion);
-            logger_recibido(logger, paquete);
+        void _suscripcion() {
+            log_info(logger, "Inicia suscripcion a cola %d", tipo_mensaje); // TODO usar funcion que esta haciendo Nico para traducir codigo a nombre
+            while(ipc_hay_datos_para_recibir_de(conexion)) {
+                t_paquete* paquete = ipc_recibir_de(conexion);
+                logger_recibido(logger, paquete);
+                ipc_enviar_ack(get_id_suscriptor(), paquete->header->id_mensaje, conexion);
+                paquete_liberar(paquete);
+            }
         }
+
+        pthread_t hilo;
+        pthread_create(&hilo, NULL, (void*)_suscripcion, NULL);
+
+        sleep(tiempo_suscripcion);
+        log_info(logger, "Termina suscripcion a cola %d", tipo_mensaje);
+
+        pthread_cancel(hilo);
     }
 
     paquete_liberar(paquete);

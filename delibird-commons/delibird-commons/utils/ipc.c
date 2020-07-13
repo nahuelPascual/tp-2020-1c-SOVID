@@ -173,7 +173,6 @@ void ipc_enviar_ack(uint32_t id_suscriptor, uint32_t id_mensaje, int socket) {
 }
 
 static void ipc_escuchar_gameboy(t_listener_config* config) {
-    printf("Abriendo conexion para escuchar al gameboy");
     int server = ipc_escuchar_en(config->ip, config->puerto);
     while(1) {
         int cliente = ipc_esperar_cliente(server);

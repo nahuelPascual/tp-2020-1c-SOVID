@@ -4,7 +4,11 @@
 
 #include "mensaje.h"
 
-t_paquete* resolver_mensaje(int codOperacion, char** args) {
+extern t_log* logger;
+static const char* GAMECARD = "gamecard";
+static const char* BROKER = "broker";
+
+t_paquete* resolver_mensaje(char* proceso, int codOperacion, char** args) {
     void* msg;
     t_paquete* p;
 
@@ -12,37 +16,57 @@ t_paquete* resolver_mensaje(int codOperacion, char** args) {
     case NEW_POKEMON:
         msg = mensaje_crear_new_pokemon(args[3], atoi(args[4]), atoi(args[5]), atoi(args[6]));
         p = paquete_from_new_pokemon((t_new_pokemon*) msg);
-        if(args[7] != NULL) { // tiene id_mensaje cuando se envia al game-card
-            p->header->id_mensaje = atoi(args[7]);
+        if(string_equals_ignore_case(proceso, GAMECARD)) {
+            if (args[7] != NULL) {
+                p->header->id_mensaje = atoi(args[7]);
+            } else {
+                log_error(logger, "Mensaje NEW_POKEMON necesita ID_MENSAJE para enviarse a GAME-CARD");
+                return NULL;
+            }
         }
         mensaje_liberar_new_pokemon(msg);
         return p;
     case GET_POKEMON:
         msg = mensaje_crear_get_pokemon(args[3]);
         p = paquete_from_get_pokemon((t_get_pokemon*) msg);
-        if(args[4] != NULL) { // tiene id_mensaje cuando se envia al game-card
-            p->header->id_mensaje = atoi(args[4]);
+        if(string_equals_ignore_case(proceso, GAMECARD)) {
+            if (args[4] != NULL) {
+                p->header->id_mensaje = atoi(args[4]);
+            } else {
+                log_error(logger, "Mensaje GET_POKEMON necesita ID_MENSAJE para enviarse a GAME-CARD");
+                return NULL;
+            }
         }
         mensaje_liberar_get_pokemon(msg);
         return p;
     case APPEARED_POKEMON:
         msg = mensaje_crear_appeared_pokemon(args[3], atoi(args[4]), atoi(args[5]));
         p = paquete_from_appeared_pokemon((t_appeared_pokemon*) msg);
-        if(args[6] != NULL) { // tiene correlation_id_mensaje cuando se envia al broker
-            p->header->correlation_id_mensaje = atoi(args[6]);
+        if(string_equals_ignore_case(proceso, BROKER)) {
+            if(args[6] != NULL) {
+                p->header->correlation_id_mensaje = atoi(args[6]);
+            } else {
+                log_error(logger, "Mensaje APPEARED_POKEMON necesita CORRELATION_ID para enviarse a BROKER");
+                return NULL;
+            }
         }
         mensaje_liberar_appeared_pokemon(msg);
         return p;
     case CATCH_POKEMON:
         msg = mensaje_crear_catch_pokemon(args[3], atoi(args[4]), atoi(args[5]));
         p = paquete_from_catch_pokemon((t_catch_pokemon*) msg);
-        if(args[6] != NULL) { // tiene id_mensaje cuando se envia al game-card
-            p->header->id_mensaje = atoi(args[6]);
+        if(string_equals_ignore_case(proceso, GAMECARD)) {
+            if(args[6] != NULL) {
+                p->header->id_mensaje = atoi(args[6]);
+            } else {
+                log_error(logger, "Mensaje CATCH_POKEMON necesita ID_MENSAJE para enviarse a GAME-CARD");
+                return NULL;
+            }
         }
         mensaje_liberar_catch_pokemon(msg);
         return p;
     case CAUGHT_POKEMON:
-        msg = mensaje_crear_caught_pokemon(atoi(args[4])); // por la consola nos mandan OK/FAIL o 1/0?
+        msg = mensaje_crear_caught_pokemon(string_equals_ignore_case(args[4], "OK") ? 1 : 0); // nos mandan OK/FAIL y lo traducimos a 1/0
         p = paquete_from_caught_pokemon((t_caught_pokemon*) msg);
         p->header->correlation_id_mensaje = atoi(args[3]);
         mensaje_liberar_caught_pokemon(msg);

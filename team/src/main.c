@@ -83,7 +83,9 @@ t_listener_config* crear_gameboy_listener(){
     config->puerto = config_team->puerto_team;
     config->handler = escuchar_a;
 
+    log_debug(default_logger, "Abriendo socket para comunicarse con game-boy");
     ipc_crear_gameboy_listener(config);
+
     return config;
 }
 

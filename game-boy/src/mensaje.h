@@ -11,7 +11,7 @@
 #include <delibird-commons/model/mensaje.h>
 #include "test/serialization.h"
 
-t_paquete* resolver_mensaje(int codOperacion, char** args);
+t_paquete* resolver_mensaje(char* proceso, int codOperacion, char** args);
 int normalizar_tipo_mensaje(char* nombreMensaje);
 
 #endif //MENSAJE_H
