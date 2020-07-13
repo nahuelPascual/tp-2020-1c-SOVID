@@ -18,8 +18,9 @@ t_new_pokemon* paquete_to_new_pokemon(t_paquete* paquete) {
     int offset = 0;
     memcpy(&mensaje->nombre_len, paquete->payload + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
-    mensaje->nombre = malloc(mensaje->nombre_len);
+    mensaje->nombre = malloc(mensaje->nombre_len + 1);
     memcpy(mensaje->nombre, paquete->payload + offset, mensaje->nombre_len);
+    mensaje->nombre[mensaje->nombre_len] = '\0';
     offset += mensaje->nombre_len;
     mensaje->posicion = malloc(sizeof(t_coord));
     memcpy(mensaje->posicion, paquete->payload + offset, sizeof(t_coord));
@@ -35,8 +36,9 @@ t_localized_pokemon* paquete_to_localized_pokemon(t_paquete* paquete) {
     int offset = 0;
     memcpy(&mensaje->nombre_len, paquete->payload + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
-    mensaje->nombre = malloc(mensaje->nombre_len);
+    mensaje->nombre = malloc(mensaje->nombre_len + 1);
     memcpy(mensaje->nombre, paquete->payload + offset, mensaje->nombre_len);
+    mensaje->nombre[mensaje->nombre_len] = '\0';
     offset += mensaje->nombre_len;
     memcpy(&mensaje->posiciones_len, paquete->payload + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
@@ -59,8 +61,9 @@ t_get_pokemon* paquete_to_get_pokemon(t_paquete* paquete) {
     int offset = 0;
     memcpy(&mensaje->nombre_len, paquete->payload + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
-    mensaje->nombre = malloc(mensaje->nombre_len);
+    mensaje->nombre = malloc(mensaje->nombre_len + 1);
     memcpy(mensaje->nombre, paquete->payload + offset, mensaje->nombre_len);
+    mensaje->nombre[mensaje->nombre_len] = '\0';
 
     return mensaje;
 }
@@ -71,8 +74,9 @@ t_appeared_pokemon* paquete_to_appeared_pokemon(t_paquete* paquete) {
     int offset = 0;
     memcpy(&mensaje->nombre_len, paquete->payload + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
-    mensaje->nombre = malloc(mensaje->nombre_len);
+    mensaje->nombre = malloc(mensaje->nombre_len + 1);
     memcpy(mensaje->nombre, paquete->payload + offset, mensaje->nombre_len);
+    mensaje->nombre[mensaje->nombre_len] = '\0';
     offset += mensaje->nombre_len;
     mensaje->posicion = malloc(sizeof(t_coord));
     memcpy(mensaje->posicion, paquete->payload + offset, sizeof(t_coord));
@@ -86,8 +90,9 @@ t_catch_pokemon* paquete_to_catch_pokemon(t_paquete* paquete) {
     int offset = 0;
     memcpy(&mensaje->nombre_len, paquete->payload + offset, sizeof(uint32_t));
     offset += sizeof(uint32_t);
-    mensaje->nombre = malloc(mensaje->nombre_len);
+    mensaje->nombre = malloc(mensaje->nombre_len + 1);
     memcpy(mensaje->nombre, paquete->payload + offset, mensaje->nombre_len);
+    mensaje->nombre[mensaje->nombre_len] = '\0';
     offset += mensaje->nombre_len;
     mensaje->posicion = malloc(sizeof(t_coord));
     memcpy(mensaje->posicion, paquete->payload + offset, sizeof(t_coord));
