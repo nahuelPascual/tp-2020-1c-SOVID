@@ -38,6 +38,7 @@ void mensaje_despachable_add_suscriptor_enviado(t_mensaje_despachable* mensaje_d
 void mensaje_despachable_add_suscriptor_recibido(t_mensaje_despachable* mensaje_despachable, t_ack* ack);
 bool mensaje_despachable_tiene_todos_los_acks(t_mensaje_despachable* mensaje_despachable);
 
+bool mensaje_despachable_fue_enviado_a(t_mensaje_despachable* mensaje_despachable, t_suscriptor* suscriptor);
 bool mensaje_despachable_fue_recibido_por(t_mensaje_despachable* mensaje_despachable, t_suscriptor* suscriptor);
 
 bool mensaje_despachable_es_misma_respuesta_que(t_mensaje_despachable* mensaje_despachable, t_paquete* paquete);

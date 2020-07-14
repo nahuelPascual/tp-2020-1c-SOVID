@@ -153,6 +153,8 @@ t_particion* memoria_get_particion_a_desocupar(t_memoria* memoria) {
 void memoria_desocupar_particion(t_memoria* memoria, t_particion* particion) {
     particion->esta_libre = true;
 
+    log_info(logger, "PARTICION ELIMINADA - Base_particion: %i", particion->base);
+
     memoria_consolidar(memoria);
 }
 
@@ -195,6 +197,8 @@ void memoria_compactar(t_memoria* memoria) {
     }
 
     memoria_consolidar(memoria);
+
+    log_info(logger, "COMPACTACION EJECUTADA");
 }
 
 void memoria_consolidar(t_memoria* memoria) {
@@ -209,6 +213,10 @@ void memoria_consolidar(t_memoria* memoria) {
 
         if(particion->esta_libre && particion_siguiente->esta_libre && particiones_dinamicas_o_son_buddies) {
             particion->tamanio += particion_siguiente->tamanio;
+
+            if(memoria->tipo_esquema_administracion == BUDDY_SYSTEM)
+                log_info(logger, "PARTICIONES ASOCIADAS - Bases: %i y %i", particion->base, particion_siguiente->base);
+
             list_remove_and_destroy_element(memoria->particiones, i + 1, (void*) memoria_liberar_particion);
 
             if(memoria->tipo_esquema_administracion == BUDDY_SYSTEM)

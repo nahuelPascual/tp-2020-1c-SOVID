@@ -10,7 +10,8 @@
 t_log* logger;
 
 int main(int argc, char **argv) {
-    logger = log_create("broker.log", "BROKER", true, LOG_LEVEL_INFO); // TODO levantar path de la config
+    logger = log_create("broker.log", "BROKER", true, LOG_LEVEL_INFO);
+
     mensajeria_inicializar();
 
     mensajeria_despachar_mensajes();

@@ -4,6 +4,41 @@
 
 #include "mensaje.h"
 
+char* mensaje_get_tipo_as_string(t_tipo_mensaje tipo_mensaje) {
+    char* tipo_mensaje_string;
+    switch(tipo_mensaje) {
+    case NEW_POKEMON: {
+        tipo_mensaje_string = "NEW POKEMON";
+        break;
+    }
+    case LOCALIZED_POKEMON: {
+        tipo_mensaje_string = "LOCALIZED POKEMON";
+        break;
+    }
+    case GET_POKEMON: {
+        tipo_mensaje_string = "GET POKEMON";
+        break;
+    }
+    case APPEARED_POKEMON: {
+        tipo_mensaje_string = "APPEARED POKEMON";
+        break;
+    }
+    case CATCH_POKEMON: {
+        tipo_mensaje_string = "CATCH POKEMON";
+        break;
+    }
+    case CAUGHT_POKEMON: {
+        tipo_mensaje_string = "CAUGHT POKEMON";
+        break;
+    }
+    case NO_APLICA: {
+        tipo_mensaje_string = "NO APLICA";
+        break;
+    }
+    }
+    return tipo_mensaje_string;
+}
+
 t_new_pokemon* mensaje_crear_new_pokemon(char* nombre, uint32_t x, uint32_t y, uint32_t cantidad) {
     t_new_pokemon* pokemon = malloc(sizeof(t_new_pokemon));
 

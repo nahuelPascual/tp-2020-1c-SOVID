@@ -47,6 +47,7 @@ void _procesar_paquete_de(t_paquete* paquete, int cliente) {
 void _gestionar_a(int cliente) {
     while(ipc_hay_datos_para_recibir_de(cliente)) {
         t_paquete* paquete = ipc_recibir_de(cliente);
+        logger_recibido(logger, paquete);
         _procesar_paquete_de(paquete, cliente);
     }
 }
@@ -57,6 +58,7 @@ void _gestionar_clientes() {
     while(1) {
         pthread_t gestor_de_un_cliente;
         int cliente = ipc_esperar_cliente(broker);
+        log_info(logger, "*CONEXION ENTRANTE*");
         pthread_create(&gestor_de_un_cliente, NULL, (void*) _gestionar_a, (void*) cliente);
         pthread_detach(gestor_de_un_cliente);
     }

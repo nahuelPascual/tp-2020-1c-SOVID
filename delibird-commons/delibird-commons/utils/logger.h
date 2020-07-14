@@ -29,5 +29,6 @@ void logger_caught_pokemon(t_log* logger, t_caught_pokemon* caught_pokemon);
 
 void logger_recibido(t_log* logger, t_paquete* paquete);
 void logger_enviado(t_log* logger, t_paquete* paquete);
+void logger_enviado_a_un_suscriptor(t_log* logger, t_paquete* paquete, uint32_t id_suscriptor);
 
 #endif //LOGGER_H

@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
 
     if(string_equals_ignore_case(proceso, "SUSCRIPTOR")) {
         void _suscripcion() {
-            log_info(logger, "Inicia suscripcion a cola %d", tipo_mensaje); // TODO usar funcion que esta haciendo Nico para traducir codigo a nombre
+            log_info(logger, "Inicia suscripcion a cola %s", mensaje_get_tipo_as_string(tipo_mensaje));
             while(ipc_hay_datos_para_recibir_de(conexion)) {
                 t_paquete* paquete = ipc_recibir_de(conexion);
                 logger_recibido(logger, paquete);
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
         pthread_create(&hilo, NULL, (void*)_suscripcion, NULL);
 
         sleep(tiempo_suscripcion);
-        log_info(logger, "Termina suscripcion a cola %d", tipo_mensaje);
+        log_info(logger, "Termina suscripcion a cola %s", mensaje_get_tipo_as_string(tipo_mensaje));
 
         pthread_cancel(hilo);
     }

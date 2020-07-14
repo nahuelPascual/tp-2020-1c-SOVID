@@ -13,8 +13,11 @@
 
 #include <delibird-commons/utils/paquete.h>
 #include <delibird-commons/utils/list.h>
+#include <delibird-commons/utils/logger.h>
 
 #include "utils.h"
+
+extern t_log* logger;
 
 typedef enum {
     PARTICIONES_DINAMICAS, BUDDY_SYSTEM

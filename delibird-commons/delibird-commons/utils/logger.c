@@ -107,16 +107,17 @@ static char* crearInfoCaughtPokemon(t_caught_pokemon* caught_pokemon){
 
 static char* crearInfoAck(t_ack* ack){
     char* infoAck = string_new();
-    string_append_with_format(&infoAck, "ACK - Id_mensaje ACK: %d",
-        ack->id_mensaje);
+    string_append_with_format(&infoAck, "ACK - Id_suscriptor: %i | Id_mensaje: %d",
+            ack->id_suscriptor,
+            ack->id_mensaje);
     return infoAck;
 }
 
 static char* crearInfoSuscripcion(t_suscripcion* suscripcion){
     char* infoSuscripcion = string_new();
-    string_append_with_format(&infoSuscripcion, "SUSCRIPCION - Tipo_mensaje: %d | Tiempo: %d",
-            suscripcion->tipo_mensaje,
-            suscripcion->tiempo);
+    string_append_with_format(&infoSuscripcion, "SUSCRIPCION - Id_suscriptor: %i | Tipo_mensaje: %s",
+            suscripcion->id_suscriptor,
+            mensaje_get_tipo_as_string(suscripcion->tipo_mensaje));
     return infoSuscripcion;
 }
 
@@ -412,12 +413,17 @@ static char* crearStringMensaje(t_paquete* paquete){
 
 void logger_recibido(t_log* logger, t_paquete* paquete){
     resetFlagError(flag_error);
+    char* infoHeader = crearInfoHeader(paquete);
     char* info = crearStringPaquete(paquete);
     switch(flag_error){
         case CORRECTO:
-            log_info(logger, "PAQUETE RECIBIDO - %s", info);
+            if(paquete->header->tipo_mensaje == MENSAJE)
+                log_info(logger, "PAQUETE RECIBIDO - %s | %s", infoHeader, info);
+            else
+                log_info(logger, "PAQUETE RECIBIDO - %s", info);
+            free(infoHeader);
             free(info);
-             return;
+            return;
 
         case ERROR_MENSAJE:
             log_error(logger, "Error al intentar loguear el mensaje. Tipo mensaje %d", paquete->header->tipo_mensaje);
@@ -435,12 +441,42 @@ void logger_recibido(t_log* logger, t_paquete* paquete){
 
 void logger_enviado(t_log* logger, t_paquete* paquete){
     resetFlagError(flag_error);
+    char* infoHeader = crearInfoHeader(paquete);
     char* info = crearStringPaquete(paquete);
     switch(flag_error){
         case CORRECTO:
-            log_info(logger, "PAQUETE ENVIADO - %s", info);
+            if(paquete->header->tipo_mensaje == MENSAJE)
+                log_info(logger, "PAQUETE ENVIADO - %s | %s", infoHeader, info);
+            else
+                log_info(logger, "PAQUETE ENVIADO - %s", info);
+            free(infoHeader);
             free(info);
-             return;
+            return;
+
+        case ERROR_MENSAJE:
+            log_error(logger, "Error al intentar loguear el mensaje. Tipo mensaje %d", paquete->header->tipo_mensaje);
+            return;
+
+        case ERROR_PAQUETE:
+            log_error(logger, "Error al intentar loguear el paquete. Tipo paquete %d", paquete->header->tipo_paquete);
+            return;
+
+        default:
+            log_error(logger, "Error desconocido. Flag:%d", flag_error);
+            return;
+    }
+}
+
+void logger_enviado_a_un_suscriptor(t_log* logger, t_paquete* paquete, uint32_t id_suscriptor){
+    resetFlagError(flag_error);
+    char* infoHeader = crearInfoHeader(paquete);
+    char* info = crearStringPaquete(paquete);
+    switch(flag_error){
+        case CORRECTO:
+            log_info(logger, "PAQUETE ENVIADO A SUSCRIPTOR - Id_suscriptor: %i | %s | %s", id_suscriptor, infoHeader, info);
+            free(infoHeader);
+            free(info);
+            return;
 
         case ERROR_MENSAJE:
             log_error(logger, "Error al intentar loguear el mensaje. Tipo mensaje %d", paquete->header->tipo_mensaje);

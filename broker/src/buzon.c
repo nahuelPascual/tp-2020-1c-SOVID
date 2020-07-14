@@ -10,7 +10,7 @@
 t_buzon* buzon_crear() {
     t_buzon* buzon = malloc(sizeof(t_buzon));
     buzon->administrador_colas = administrador_colas_crear();
-    buzon->memoria = memoria_crear(0, 1024, PARTICIONES_DINAMICAS, FIRST_FIT, FIFO, 3);
+    buzon->memoria = memoria_crear(0, 68, PARTICIONES_DINAMICAS, FIRST_FIT, FIFO, 3);
 
     return buzon;
 }
@@ -29,6 +29,11 @@ void buzon_almacenar_mensaje(t_buzon* buzon, t_paquete* paquete) {
 
         memoria_asignar_paquete_a_la_particion(buzon->memoria, paquete, mensaje_despachable->particion_asociada);
 
+        log_info(logger, "MENSAJE ALMACENADO - Id_mensaje: %i | Size_mensaje: %i | Base_particion: %i",
+                mensaje_despachable->id,
+                mensaje_despachable->size,
+                mensaje_despachable->particion_asociada->base);
+
         cola_push_mensaje_sin_despachar(cola, mensaje_despachable);
     }
 }
@@ -40,11 +45,13 @@ void buzon_despachar_mensaje_de(t_buzon* buzon, t_cola* cola) {
         t_paquete* paquete = mensaje_despachable_to_paquete(mensaje_despachable, buzon->memoria);
         paquete_set_tipo_mensaje(paquete, cola->tipo_mensaje);
         bool enviado = ipc_enviar_a(suscriptor->socket_asociado, paquete);
-        paquete_liberar(paquete);
 
         if(enviado) {
             mensaje_despachable_add_suscriptor_enviado(mensaje_despachable, suscriptor);
+            logger_enviado_a_un_suscriptor(logger, paquete, suscriptor->id);
         }
+
+        paquete_liberar(paquete);
     }
 
     cola_iterate_suscriptores(cola, _despachar_mensaje_a);
@@ -78,12 +85,21 @@ void buzon_registrar_suscriptor(t_buzon* buzon, t_suscriptor* suscriptor) {
     cola_add_or_update_suscriptor(cola, suscriptor);
 
     void _enviar_al_suscriptor_si_no_lo_recibio(t_mensaje_despachable* mensaje_despachable) {
-        bool recibido = mensaje_despachable_fue_recibido_por(mensaje_despachable, suscriptor);
+        bool fue_recibido = mensaje_despachable_fue_recibido_por(mensaje_despachable, suscriptor);
 
-        if(!recibido) {
+        if(!fue_recibido) {
             t_paquete* paquete = mensaje_despachable_to_paquete(mensaje_despachable, buzon->memoria);
             paquete_set_tipo_mensaje(paquete, cola->tipo_mensaje);
-            ipc_enviar_a(suscriptor->socket_asociado, paquete);
+            bool enviado = ipc_enviar_a(suscriptor->socket_asociado, paquete);
+
+            if(enviado) {
+                bool fue_enviado_anteriormente = mensaje_despachable_fue_enviado_a(mensaje_despachable, suscriptor);
+                if(!fue_enviado_anteriormente)
+                    mensaje_despachable_add_suscriptor_enviado(mensaje_despachable, suscriptor);
+
+                logger_enviado_a_un_suscriptor(logger, paquete, suscriptor->id);
+            }
+
             paquete_liberar(paquete);
         }
     }

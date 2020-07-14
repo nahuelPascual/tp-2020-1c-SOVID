@@ -77,6 +77,17 @@ bool mensaje_despachable_tiene_todos_los_acks(t_mensaje_despachable* mensaje_des
                        (void*) _igualigual);
 }
 
+bool mensaje_despachable_fue_enviado_a(t_mensaje_despachable* mensaje_despachable, t_suscriptor* suscriptor) {
+    bool _is_the_one(uint32_t id_suscriptor) {
+        return id_suscriptor == suscriptor->id;
+    }
+
+    //TODO: Ver si vamos a necesitar agregarle un mutex a esta lista ahora o no
+    bool enviado = list_any_satisfy(mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado, (void*) _is_the_one);
+
+    return enviado;
+}
+
 bool mensaje_despachable_fue_recibido_por(t_mensaje_despachable* mensaje_despachable, t_suscriptor* suscriptor) {
     bool _is_the_one(uint32_t id_suscriptor) {
         return id_suscriptor == suscriptor->id;
