@@ -8,8 +8,6 @@
 #ifndef ADMINISTRADOR_COLAS_H_
 #define ADMINISTRADOR_COLAS_H_
 
-#include <pthread.h>
-
 #include <commons/collections/dictionary.h>
 
 #include "cola.h"
@@ -17,8 +15,6 @@
 typedef struct {
     t_dictionary* colas;
     int id_mensaje;
-
-    pthread_mutex_t mutex_id_mensaje;
 } t_administrador_colas;
 
 t_administrador_colas* administrador_colas_crear();
@@ -29,5 +25,6 @@ void administrador_colas_asignar_id_mensaje_a(t_administrador_colas* administrad
 
 t_mensaje_despachable* administrador_colas_find_mensaje_despachable_by_id(t_administrador_colas* administrador_colas, uint32_t id_mensaje);
 bool administrador_colas_remove_and_destroy_mensaje_despachable_by_id(t_administrador_colas* administrador_colas, uint32_t id_mensaje);
+t_cola* administrador_colas_find_cola_by_id_mensaje(t_administrador_colas* administrador_colas, uint32_t id_mensaje);
 
 #endif /* ADMINISTRADOR_COLAS_H_ */

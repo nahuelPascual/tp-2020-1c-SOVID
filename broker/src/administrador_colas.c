@@ -18,8 +18,6 @@ t_administrador_colas* administrador_colas_crear() {
         free(key);
     }
 
-    pthread_mutex_init(&administrador_colas->mutex_id_mensaje, NULL);
-
     return administrador_colas;
 }
 
@@ -32,9 +30,9 @@ t_cola* administrador_colas_get_cola_from(t_administrador_colas* administrador_c
 }
 
 void administrador_colas_asignar_id_mensaje_a(t_administrador_colas* administrador_colas, t_mensaje_despachable* mensaje_despachable) {
-    pthread_mutex_lock(&administrador_colas->mutex_id_mensaje);
-    mensaje_despachable->id = administrador_colas->id_mensaje++;
-    pthread_mutex_unlock(&administrador_colas->mutex_id_mensaje);
+    uint32_t id_mensaje = administrador_colas->id_mensaje++;
+    mensaje_despachable->id = id_mensaje;
+    mensaje_despachable->particion_asociada->id_mensaje_asociado = id_mensaje;
 }
 
 t_mensaje_despachable* administrador_colas_find_mensaje_despachable_by_id(t_administrador_colas* administrador_colas, uint32_t id_mensaje) {
@@ -59,4 +57,17 @@ bool administrador_colas_remove_and_destroy_mensaje_despachable_by_id(t_administ
     }
 
     return eliminado;
+}
+
+//TODO: Refactor de nombre y no usar find
+t_cola* administrador_colas_find_cola_by_id_mensaje(t_administrador_colas* administrador_colas, uint32_t id_mensaje) {
+    for(t_tipo_mensaje tipo_mensaje = 0; tipo_mensaje < dictionary_size(administrador_colas->colas); tipo_mensaje++) {
+        t_cola* cola = administrador_colas_get_cola_from(administrador_colas, tipo_mensaje);
+
+        if(cola_find_mensaje_despachable_by_id(cola, id_mensaje)) {
+            return cola;
+        }
+    }
+
+    return NULL;
 }

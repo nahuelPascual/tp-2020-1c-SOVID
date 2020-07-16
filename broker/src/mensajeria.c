@@ -30,9 +30,10 @@ void _procesar_paquete_de(t_paquete* paquete, int cliente) {
         break;
     }
     case MENSAJE: {
-        buzon_almacenar_mensaje(buzon, paquete);
+        t_mensaje_despachable* mensaje_despachable = buzon_almacenar_mensaje(buzon, paquete);
 
-        buzon_informar_id_mensaje_a(buzon, cliente);
+        //TODO: si es redundante => que mierda informo?
+        mensaje_despachable_informar_id_a(mensaje_despachable, cliente);
 
         break;
     }
@@ -53,7 +54,7 @@ void _gestionar_a(int cliente) {
 }
 
 void _gestionar_clientes() {
-    int broker = ipc_escuchar_en("127.0.0.1", "8081");
+    int broker = ipc_escuchar_en(configuracion->ip_broker, configuracion->puerto_broker);
 
     while(1) {
         pthread_t gestor_de_un_cliente;
@@ -71,7 +72,21 @@ void _despachar_mensajes_de(t_cola* cola) {
 }
 
 void mensajeria_inicializar() {
-    buzon = buzon_crear();
+    configuracion = configuracion_crear();
+    logger = log_create(configuracion->log_file, "BROKER", true, LOG_LEVEL_INFO);
+    buzon = buzon_crear(
+        configuracion->tamanio_memoria,
+        configuracion->tamanio_minimo_particion,
+        configuracion->algoritmo_memoria,
+        configuracion->algoritmo_particion_libre,
+        configuracion->algoritmo_reemplazo,
+        configuracion->frecuencia_compactacion
+    );
+}
+
+void mensajeria_gestionar_signal(int signal) {
+    if(signal == SIGUSR1)
+        buzon_imprimir_estado_en(buzon, configuracion->dump_file);
 }
 
 void mensajeria_despachar_mensajes() {

@@ -21,15 +21,15 @@ extern t_log* logger;
 
 typedef enum {
     PARTICIONES_DINAMICAS, BUDDY_SYSTEM
-} t_tipo_esquema_administracion;
+} t_algoritmo_memoria;
 
 typedef enum {
     FIRST_FIT, BEST_FIT
-} t_tipo_algoritmo_ocupado;
+} t_algoritmo_particion_libre;
 
 typedef enum {
     FIFO, LRU
-} t_tipo_algoritmo_desocupado;
+} t_algoritmo_reemplazo;
 
 typedef struct {
     bool esta_libre;
@@ -47,9 +47,9 @@ typedef struct {
     void* data;
 
     int tamanio_minimo_particion;
-    t_tipo_esquema_administracion tipo_esquema_administracion;
-    t_tipo_algoritmo_ocupado tipo_algoritmo_ocupado;
-    t_tipo_algoritmo_desocupado tipo_algoritmo_desocupado;
+    t_algoritmo_memoria algoritmo_memoria;
+    t_algoritmo_reemplazo algoritmo_reemplazo;
+    t_algoritmo_particion_libre algoritmo_particion_libre;
     int frecuencia_compactacion;
     int contador_particiones_desocupadas;
 
@@ -60,11 +60,11 @@ t_particion* memoria_crear_particion(int base, int tamanio);
 void memoria_liberar_particion(t_particion* particion);
 
 t_memoria* memoria_crear(
+    int tamanio_memoria,
     int tamanio_minimo_particion,
-    int tamanio_maximo_memoria,
-    t_tipo_esquema_administracion tipo_esquema_administracion,
-    t_tipo_algoritmo_ocupado tipo_algoritmo_ocupado,
-    t_tipo_algoritmo_desocupado tipo_algoritmo_desocupado,
+    t_algoritmo_memoria algoritmo_memoria,
+    t_algoritmo_reemplazo algoritmo_reemplazo,
+    t_algoritmo_particion_libre algoritmo_particion_libre,
     int frecuencia_compactacion
 );
 

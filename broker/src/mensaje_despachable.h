@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#include <delibird-commons/utils/ipc.h>
 #include <delibird-commons/utils/list.h>
 
 #include "suscriptor.h"
@@ -26,7 +27,8 @@ typedef struct {
     t_list* ids_suscriptores_a_los_que_fue_enviado;
     t_list* ids_suscriptores_que_lo_recibieron;
 
-    pthread_mutex_t mutex_ack;
+    pthread_mutex_t mutex_ids_suscriptores_a_los_que_fue_enviado;
+    pthread_mutex_t mutex_ids_suscriptores_que_lo_recibieron;
 
 } t_mensaje_despachable;
 
@@ -40,6 +42,8 @@ bool mensaje_despachable_tiene_todos_los_acks(t_mensaje_despachable* mensaje_des
 
 bool mensaje_despachable_fue_enviado_a(t_mensaje_despachable* mensaje_despachable, t_suscriptor* suscriptor);
 bool mensaje_despachable_fue_recibido_por(t_mensaje_despachable* mensaje_despachable, t_suscriptor* suscriptor);
+
+void mensaje_despachable_informar_id_a(t_mensaje_despachable* mensaje_despachable, int socket_suscriptor);
 
 bool mensaje_despachable_es_misma_respuesta_que(t_mensaje_despachable* mensaje_despachable, t_paquete* paquete);
 

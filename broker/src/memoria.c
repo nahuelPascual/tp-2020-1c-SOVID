@@ -28,26 +28,26 @@ void memoria_liberar_particion(t_particion* particion) {
 }
 
 t_memoria* memoria_crear(
+    int tamanio_memoria,
     int tamanio_minimo_particion,
-    int tamanio_maximo_memoria,
-    t_tipo_esquema_administracion tipo_esquema_administracion,
-    t_tipo_algoritmo_ocupado tipo_algoritmo_ocupado,
-    t_tipo_algoritmo_desocupado tipo_algoritmo_desocupado,
+    t_algoritmo_memoria algoritmo_memoria,
+    t_algoritmo_reemplazo algoritmo_reemplazo,
+    t_algoritmo_particion_libre algoritmo_particion_libre,
     int frecuencia_compactacion
 ) {
     t_memoria* memoria = malloc(sizeof(t_memoria));
 
-    memoria->data = malloc(tamanio_maximo_memoria);
+    memoria->data = malloc(tamanio_memoria);
 
     memoria->tamanio_minimo_particion = tamanio_minimo_particion;
-    memoria->tipo_esquema_administracion = tipo_esquema_administracion;
-    memoria->tipo_algoritmo_ocupado = tipo_algoritmo_ocupado;
-    memoria->tipo_algoritmo_desocupado = tipo_algoritmo_desocupado;
+    memoria->algoritmo_memoria = algoritmo_memoria;
+    memoria->algoritmo_particion_libre = algoritmo_particion_libre;
+    memoria->algoritmo_reemplazo = algoritmo_reemplazo;
     memoria->frecuencia_compactacion = frecuencia_compactacion;
     memoria->contador_particiones_desocupadas = 0;
 
     memoria->particiones = list_create();
-    list_add(memoria->particiones, memoria_crear_particion(0, tamanio_maximo_memoria));
+    list_add(memoria->particiones, memoria_crear_particion(0, tamanio_memoria));
 
     return memoria;
 }
@@ -76,7 +76,7 @@ t_particion* memoria_buscar_particion_libre_con(t_memoria* memoria, int tamanio)
         return particion->tamanio;
     }
 
-    switch(memoria->tipo_algoritmo_ocupado) {
+    switch(memoria->algoritmo_particion_libre) {
     case FIRST_FIT: {
         return list_find(memoria->particiones, (void*) _esta_libre_y_tiene_el_tamanio_minimo);
     }
@@ -93,13 +93,13 @@ t_particion* memoria_buscar_particion_libre_con(t_memoria* memoria, int tamanio)
 }
 
 void memoria_dividir_particion_si_es_mas_grande_que(t_memoria* memoria, t_particion* particion, int tamanio) {
-    int potencia_de_2_si_corresponde = memoria->tipo_esquema_administracion == BUDDY_SYSTEM ? get_siguiente_potencia_de_2(tamanio) : tamanio;
+    int potencia_de_2_si_corresponde = memoria->algoritmo_memoria == BUDDY_SYSTEM ? get_siguiente_potencia_de_2(tamanio) : tamanio;
     int tamanio_minimo = fmax(potencia_de_2_si_corresponde, memoria->tamanio_minimo_particion);
 
     while(particion->tamanio > tamanio_minimo) {
         int indice = list_index_of(memoria->particiones, particion);
 
-        int tamanio_correcto = memoria->tipo_esquema_administracion == BUDDY_SYSTEM ? particion->tamanio / 2 : tamanio_minimo;
+        int tamanio_correcto = memoria->algoritmo_memoria == BUDDY_SYSTEM ? particion->tamanio / 2 : tamanio_minimo;
 
         t_particion* nueva_particion = memoria_crear_particion(particion->base + tamanio_correcto, particion->tamanio - tamanio_correcto);
 
@@ -114,7 +114,6 @@ void memoria_asignar_paquete_a_la_particion(t_memoria* memoria, t_paquete* paque
 
     memcpy(direccion_fisica, paquete->payload, paquete->header->payload_size);
 
-    particion->id_mensaje_asociado = paquete->header->id_mensaje;
     particion->esta_libre = false;
     particion->tiempo_carga = clock();
 }
@@ -133,7 +132,7 @@ t_particion* memoria_get_particion_a_desocupar(t_memoria* memoria) {
     t_list* particiones_candidatas = list_filter(memoria->particiones, (void*) _esta_ocupada);
     t_particion* particion = NULL;
 
-    switch(memoria->tipo_algoritmo_desocupado) {
+    switch(memoria->algoritmo_reemplazo) {
     case FIFO: {
         particion = list_min_by(particiones_candidatas, (void*) _get_tiempo_carga);
         break;
@@ -152,6 +151,9 @@ t_particion* memoria_get_particion_a_desocupar(t_memoria* memoria) {
 
 void memoria_desocupar_particion(t_memoria* memoria, t_particion* particion) {
     particion->esta_libre = true;
+    particion->tiempo_carga = 0;
+    particion->tiempo_ultima_referencia = 0;
+    particion->id_mensaje_asociado = 0;
 
     log_info(logger, "PARTICION ELIMINADA - Base_particion: %i", particion->base);
 
@@ -167,7 +169,7 @@ void memoria_resetear_contador_particiones_desocupadas(t_memoria* memoria){
 }
 
 bool memoria_corresponde_compactar(t_memoria* memoria) {
-    return memoria->tipo_esquema_administracion != BUDDY_SYSTEM
+    return memoria->algoritmo_memoria != BUDDY_SYSTEM
     && memoria->frecuencia_compactacion == memoria->contador_particiones_desocupadas;
 }
 
@@ -207,19 +209,19 @@ void memoria_consolidar(t_memoria* memoria) {
         t_particion* particion = list_get(memoria->particiones, i);
         t_particion* particion_siguiente = list_get(memoria->particiones, i + 1);
 
-        bool particiones_dinamicas_o_son_buddies = memoria->tipo_esquema_administracion == BUDDY_SYSTEM
+        bool particiones_dinamicas_o_son_buddies = memoria->algoritmo_memoria == BUDDY_SYSTEM
             ? memoria_son_particiones_buddies(particion, particion_siguiente)
             : true;
 
         if(particion->esta_libre && particion_siguiente->esta_libre && particiones_dinamicas_o_son_buddies) {
             particion->tamanio += particion_siguiente->tamanio;
 
-            if(memoria->tipo_esquema_administracion == BUDDY_SYSTEM)
+            if(memoria->algoritmo_memoria == BUDDY_SYSTEM)
                 log_info(logger, "PARTICIONES ASOCIADAS - Bases: %i y %i", particion->base, particion_siguiente->base);
 
             list_remove_and_destroy_element(memoria->particiones, i + 1, (void*) memoria_liberar_particion);
 
-            if(memoria->tipo_esquema_administracion == BUDDY_SYSTEM)
+            if(memoria->algoritmo_memoria == BUDDY_SYSTEM)
                 i = 0;
         }
         else

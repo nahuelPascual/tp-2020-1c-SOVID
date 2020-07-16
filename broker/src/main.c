@@ -7,12 +7,10 @@
 
 #include "mensajeria.h"
 
-t_log* logger;
-
 int main(int argc, char **argv) {
-    logger = log_create("broker.log", "BROKER", true, LOG_LEVEL_INFO);
-
     mensajeria_inicializar();
+
+    signal(SIGUSR1, (void*) mensajeria_gestionar_signal);
 
     mensajeria_despachar_mensajes();
 

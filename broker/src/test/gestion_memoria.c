@@ -202,7 +202,7 @@ void test_memoria_sin_vaciado() {
 
 void test_memoria_con_vaciado() {
 
-    t_buzon* buzon = buzon_crear();
+    t_buzon* buzon = buzon_crear(0, 80, PARTICIONES_DINAMICAS, FIRST_FIT, FIFO, 3);
 
     char* name = "Pikachu";
     t_new_pokemon* pokemon = mensaje_crear_new_pokemon(name, 15, 2, 1);

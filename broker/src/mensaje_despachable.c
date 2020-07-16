@@ -23,7 +23,6 @@ t_mensaje_despachable* mensaje_despachable_from_paquete(t_paquete* paquete, t_me
 
   t_mensaje_despachable* mensaje_despachable = malloc(sizeof(t_mensaje_despachable));
 
-  mensaje_despachable->id = paquete->header->id_mensaje;
   mensaje_despachable->correlation_id = paquete->header->correlation_id_mensaje;
   mensaje_despachable->size = paquete->header->payload_size;
 
@@ -32,7 +31,8 @@ t_mensaje_despachable* mensaje_despachable_from_paquete(t_paquete* paquete, t_me
   mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado = list_create();
   mensaje_despachable->ids_suscriptores_que_lo_recibieron = list_create();
 
-  pthread_mutex_init(&mensaje_despachable->mutex_ack, NULL);
+  pthread_mutex_init(&mensaje_despachable->mutex_ids_suscriptores_a_los_que_fue_enviado, NULL);
+  pthread_mutex_init(&mensaje_despachable->mutex_ids_suscriptores_que_lo_recibieron, NULL);
 
   return mensaje_despachable;
 }
@@ -53,18 +53,21 @@ t_paquete* mensaje_despachable_to_paquete(t_mensaje_despachable* mensaje_despach
 void mensaje_despachable_liberar(t_mensaje_despachable* mensaje_despachable) {
     list_destroy(mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado);
     list_destroy(mensaje_despachable->ids_suscriptores_que_lo_recibieron);
-    pthread_mutex_destroy(&mensaje_despachable->mutex_ack);
+    pthread_mutex_destroy(&mensaje_despachable->mutex_ids_suscriptores_a_los_que_fue_enviado);
+    pthread_mutex_destroy(&mensaje_despachable->mutex_ids_suscriptores_que_lo_recibieron);
     free(mensaje_despachable);
 }
 
 void mensaje_despachable_add_suscriptor_enviado(t_mensaje_despachable* mensaje_despachable, t_suscriptor* suscriptor) {
+    pthread_mutex_lock(&mensaje_despachable->mutex_ids_suscriptores_a_los_que_fue_enviado);
     list_add(mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado, (void*) suscriptor->id);
+    pthread_mutex_unlock(&mensaje_despachable->mutex_ids_suscriptores_a_los_que_fue_enviado);
 }
 
 void mensaje_despachable_add_suscriptor_recibido(t_mensaje_despachable* mensaje_despachable, t_ack* ack) {
-    pthread_mutex_lock(&mensaje_despachable->mutex_ack);
+    pthread_mutex_lock(&mensaje_despachable->mutex_ids_suscriptores_que_lo_recibieron);
     list_add(mensaje_despachable->ids_suscriptores_que_lo_recibieron, (void*) ack->id_suscriptor);
-    pthread_mutex_unlock(&mensaje_despachable->mutex_ack);
+    pthread_mutex_unlock(&mensaje_despachable->mutex_ids_suscriptores_que_lo_recibieron);
 }
 
 bool mensaje_despachable_tiene_todos_los_acks(t_mensaje_despachable* mensaje_despachable) {
@@ -82,8 +85,9 @@ bool mensaje_despachable_fue_enviado_a(t_mensaje_despachable* mensaje_despachabl
         return id_suscriptor == suscriptor->id;
     }
 
-    //TODO: Ver si vamos a necesitar agregarle un mutex a esta lista ahora o no
+    pthread_mutex_lock(&mensaje_despachable->mutex_ids_suscriptores_a_los_que_fue_enviado);
     bool enviado = list_any_satisfy(mensaje_despachable->ids_suscriptores_a_los_que_fue_enviado, (void*) _is_the_one);
+    pthread_mutex_unlock(&mensaje_despachable->mutex_ids_suscriptores_a_los_que_fue_enviado);
 
     return enviado;
 }
@@ -93,11 +97,23 @@ bool mensaje_despachable_fue_recibido_por(t_mensaje_despachable* mensaje_despach
         return id_suscriptor == suscriptor->id;
     }
 
-    pthread_mutex_lock(&mensaje_despachable->mutex_ack);
+    pthread_mutex_lock(&mensaje_despachable->mutex_ids_suscriptores_que_lo_recibieron);
     bool recibido = list_any_satisfy(mensaje_despachable->ids_suscriptores_que_lo_recibieron, (void*) _is_the_one);
-    pthread_mutex_unlock(&mensaje_despachable->mutex_ack);
+    pthread_mutex_unlock(&mensaje_despachable->mutex_ids_suscriptores_que_lo_recibieron);
 
     return recibido;
+}
+
+void mensaje_despachable_informar_id_a(t_mensaje_despachable* mensaje_despachable, int socket_suscriptor) {
+    uint32_t id_a_informar = mensaje_despachable ? mensaje_despachable-> id : 0;
+
+    t_informe_id* informe_id = informe_id_crear(id_a_informar);
+    t_paquete* paquete = paquete_from_informe_id(informe_id);
+
+    ipc_enviar_a(socket_suscriptor, paquete);
+
+    informe_id_liberar(informe_id);
+    paquete_liberar(paquete);
 }
 
 bool mensaje_despachable_es_misma_respuesta_que(t_mensaje_despachable* mensaje_despachable, t_paquete* paquete) {
