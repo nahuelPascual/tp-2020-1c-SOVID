@@ -145,25 +145,22 @@ void buzon_recibir_ack(t_buzon* buzon, t_ack* ack) {
 void buzon_imprimir_estado_en(t_buzon* buzon, char* path_archivo) {
     FILE* dump_file = fopen(path_archivo, "w");
 
-    time_t epoch;
-    struct tm* info_datetime;
-    char* string_datetime = malloc(80);
+    char* string_datetime = get_string_datetime();
 
-    time(&epoch);
-    info_datetime = localtime(&epoch);
-    strftime(string_datetime, 80, "%d/%m/%Y %X", info_datetime);
-
-    fprintf(dump_file, "Dump: %s\n", string_datetime);
+    fprintf(dump_file, "Dump: %s\n\n", string_datetime);
 
     free(string_datetime);
 
     int i = 0;
     void _write(t_particion* particion) {
-        //TODO: quieren la base o la direccion fisica?
-        int desde = particion->base;
-        int hasta = particion->base + particion->tamanio;
+        //TODO: mas logica repetida del get_direccion_fisica
+        void* desde = buzon->memoria->data + particion->base;
+        void* hasta = buzon->memoria->data + particion->base + particion->tamanio - 1;
         char* estado = particion->esta_libre ? "L" : "X";
-        int tamanio = particion->tamanio;
+
+        char* tamanio_string = string_itoa(particion->tamanio);
+        string_append(&tamanio_string,"b");
+
         int LRU = particion->tiempo_ultima_referencia;
 
         t_cola* cola = administrador_colas_find_cola_by_id_mensaje(buzon->administrador_colas, particion->id_mensaje_asociado);
@@ -171,7 +168,9 @@ void buzon_imprimir_estado_en(t_buzon* buzon, char* path_archivo) {
 
         int id = particion->id_mensaje_asociado;
 
-        fprintf(dump_file, "Partición %i: %06x - %06x.  [%s]    Size: %ib   LRU:%i  Cola:%s   ID:%i\n", i, desde, hasta, estado, tamanio, LRU, tipo_mensaje_string, id);
+        fprintf(dump_file, "Partición %2i: %p - %p  [%s]  Size: %-5s LRU: %-6i Cola: %-17s ID: %i\n", i, desde, hasta, estado, tamanio_string, LRU, tipo_mensaje_string, id);
+
+        free(tamanio_string);
         i++;
     }
 

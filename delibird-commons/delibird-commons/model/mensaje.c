@@ -8,31 +8,31 @@ char* mensaje_get_tipo_as_string(t_tipo_mensaje tipo_mensaje) {
     char* tipo_mensaje_string;
     switch(tipo_mensaje) {
     case NEW_POKEMON: {
-        tipo_mensaje_string = "NEW POKEMON";
+        tipo_mensaje_string = "NEW_POKEMON";
         break;
     }
     case LOCALIZED_POKEMON: {
-        tipo_mensaje_string = "LOCALIZED POKEMON";
+        tipo_mensaje_string = "LOCALIZED_POKEMON";
         break;
     }
     case GET_POKEMON: {
-        tipo_mensaje_string = "GET POKEMON";
+        tipo_mensaje_string = "GET_POKEMON";
         break;
     }
     case APPEARED_POKEMON: {
-        tipo_mensaje_string = "APPEARED POKEMON";
+        tipo_mensaje_string = "APPEARED_POKEMON";
         break;
     }
     case CATCH_POKEMON: {
-        tipo_mensaje_string = "CATCH POKEMON";
+        tipo_mensaje_string = "CATCH_POKEMON";
         break;
     }
     case CAUGHT_POKEMON: {
-        tipo_mensaje_string = "CAUGHT POKEMON";
+        tipo_mensaje_string = "CAUGHT_POKEMON";
         break;
     }
     case NO_APLICA: {
-        tipo_mensaje_string = "NO APLICA";
+        tipo_mensaje_string = "NO_APLICA";
         break;
     }
     }
