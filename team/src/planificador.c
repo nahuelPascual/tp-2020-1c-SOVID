@@ -99,7 +99,7 @@ void planificador_encolar_ready(t_entrenador* e) {
             e->info->ultima_ejecucion = e->info->ejecucion_parcial;
             e->info->ejecucion_parcial = 0;
         }
-        e->info->estimado_siguiente_rafaga = estimar_proxima_rafaga(e); // recalcula con mismos datos pero con ejecucion parcial actualizada
+        e->info->estimado_siguiente_rafaga = e->info->ciclos_cpu_ejecutados == 0 ? config_team->estimacion_inicial : estimar_proxima_rafaga(e); // recalcula con mismos datos pero con ejecucion parcial actualizada
     }
     logs_transicion(e, READY);
     e->estado = READY;

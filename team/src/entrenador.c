@@ -315,6 +315,8 @@ static t_pokemon_mapeado* encontrar_pokemon_cercano(t_entrenador* e, t_list* pok
         char* especie = (char*) pokemon;
         t_list* ubicaciones = pokemon_get(especie);
 
+        if (ubicaciones == NULL) return;
+
         void _comparar_distancia(void* p) {
             t_pokemon_mapeado* pokemon = (t_pokemon_mapeado*) p;
             int distancia = calcular_distancia(e->posicion, pokemon->ubicacion);
@@ -605,7 +607,7 @@ static void logs_movimiento_entrenador(t_entrenador* entrenador){
 
 static void logs_atrapar(t_entrenador* entrenador){
     log_info(logger, "Entrenador: %d intenta capturar a %s en la posicion (%d, %d)",
-            entrenador->id, entrenador->pokemon_buscado->pokemon, entrenador->pokemon_buscado->ubicacion->x, entrenador->pokemon_buscado->ubicacion->x);
+            entrenador->id, entrenador->pokemon_buscado->pokemon, entrenador->pokemon_buscado->ubicacion->x, entrenador->pokemon_buscado->ubicacion->y);
 }
 
 static void logs_intercambio(t_entrenador* entrenador,t_entrenador* otro_entrenador, t_pokemon_capturado* entregado,t_pokemon_capturado* recibido){
