@@ -60,7 +60,9 @@ static void enviar_localized_pokemon_response(char* nombre_pokemon, t_localized_
     t_localized_pokemon* localized_pokemon = mensaje_crear_localized_pokemon(nombre_pokemon, localized_info->cantidad_coordenadas, localized_info->coordenadas);
     t_paquete* paquete = paquete_from_localized_pokemon(localized_pokemon);
     paquete->header->correlation_id_mensaje = correlation_id;
-    ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
+
+    int broker = ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
+    if (broker != -1) esperar_id(broker);
 
     mensaje_liberar_localized_pokemon(localized_pokemon);
     paquete_liberar(paquete);
@@ -84,7 +86,9 @@ static void enviar_appeared_pokemon_response(t_new_pokemon* new_pokemon, uint32_
     t_appeared_pokemon* appeared_pokemon = mensaje_crear_appeared_pokemon(new_pokemon->nombre, new_pokemon->posicion->x, new_pokemon->posicion->y);
     t_paquete* paquete = paquete_from_appeared_pokemon(appeared_pokemon);
     paquete->header->correlation_id_mensaje = correlation_id;
-    ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
+
+    int broker = ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
+    if (broker != -1) esperar_id(broker);
 
     mensaje_liberar_appeared_pokemon(appeared_pokemon);
     paquete_liberar(paquete);
@@ -108,7 +112,9 @@ static void enviar_caught_pokemon_response(bool is_caught, uint32_t correlation_
    t_caught_pokemon* caught_pokemon = mensaje_crear_caught_pokemon(is_caught);
    t_paquete* paquete = paquete_from_caught_pokemon(caught_pokemon);
    paquete->header->correlation_id_mensaje = correlation_id;
-   ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
+
+   int broker = ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
+   if (broker != -1) esperar_id(broker);
 
    mensaje_liberar_caught_pokemon(caught_pokemon);
    paquete_liberar(paquete);
