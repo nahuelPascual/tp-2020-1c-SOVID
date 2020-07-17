@@ -5,11 +5,13 @@
 #include "deadlock.h"
 
 extern const int COSTO_INTERCAMBIO;
+extern t_log* logger;
 
 static t_intercambio* new_intercambio(t_pokemon_objetivo* entrego, t_pokemon_objetivo* recibo, t_entrenador* otro_entrenador);
 static t_pokemon_objetivo* encontrar_pokemon_para_intercambio(t_entrenador* entrenador, t_entrenador* otro_entrenador);
 static t_entrenador* detectar_simple(t_entrenador*);
 static t_entrenador* detectar_encadenado(t_entrenador*, int, t_pokemon_objetivo**);
+static void log_deadlock(t_entrenador* e);
 
 t_entrenador* deadlock_detectar(t_entrenador* entrenador) {
     if (entrenador->deadlock && entrenador->intercambio == NULL) {
@@ -35,6 +37,7 @@ t_entrenador* deadlock_detectar(t_entrenador* entrenador) {
     if (otro_entrenador) {
         metricas_add_deadlock();
         logs_deadlock(true);
+        log_deadlock(entrenador);
     }
     else logs_deadlock(false);
 
@@ -118,4 +121,19 @@ static t_intercambio* new_intercambio(t_pokemon_objetivo* entrego, t_pokemon_obj
     intercambio->ubicacion = otro_entrenador->posicion;
     intercambio->remaining_intercambio = COSTO_INTERCAMBIO;
     return intercambio;
+}
+
+static void log_deadlock(t_entrenador* e){
+    t_entrenador* entrenador = e;
+
+    char* cadena = string_new();
+    string_append_with_format(&cadena, "DEADLOCK - Orden de cadena: %i", entrenador->id);
+
+    while(entrenador->intercambio != NULL){
+        string_append_with_format(&cadena," -> %i", entrenador->intercambio->id_otro_entrenador);
+        entrenador = entrenador_get(entrenador->intercambio->id_otro_entrenador);
+    }
+
+    log_info(logger, cadena);
+    free(cadena);
 }
