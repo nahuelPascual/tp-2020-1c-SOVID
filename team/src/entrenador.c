@@ -175,7 +175,11 @@ t_entrenador* entrenador_asignar(char* pokemon) {
             objetivo = cercano;
         }
     }
+
+    pthread_mutex_lock(&mx_pokemon);
     list_iterate(entrenadores, (void*)_calcular_minima_distancia);
+    if (objetivo) objetivo->cantidad--;
+    pthread_mutex_unlock(&mx_pokemon);
 
     list_destroy(entrenadores);
     list_destroy(especies);
@@ -203,8 +207,10 @@ void entrenador_concretar_captura(t_entrenador* e, char* pokemon, t_coord* ubica
     list_add(e->capturados, captura);
 
     objetivos_capturado(e->pokemon_buscado->pokemon);
-    pokemon_sacar_del_mapa(e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion);
-    e->pokemon_buscado = NULL; // es el mismo puntero que el del mapa y ya se libera en la funcion de arriba
+    pthread_mutex_lock(&mx_pokemon);
+    e->pokemon_buscado->cantidad--;
+    pthread_mutex_unlock(&mx_pokemon);
+    e->pokemon_buscado = NULL;
 
     log_estado_objetivos(e);
 }
@@ -276,7 +282,10 @@ void entrenador_asignar_objetivo_a(t_entrenador* e) {
     t_list* objetivos_asignables = get_objetivos_asignables();
 
     if (list_size(objetivos_asignables) > 0) {
+        pthread_mutex_lock(&mx_pokemon);
         e->pokemon_buscado = encontrar_pokemon_cercano(e, objetivos_asignables);
+        e->pokemon_buscado->cantidad--;
+        pthread_mutex_unlock(&mx_pokemon);
     }
 
     list_destroy(objetivos_asignables);
@@ -284,7 +293,7 @@ void entrenador_asignar_objetivo_a(t_entrenador* e) {
 
 static t_list* get_objetivos_asignables() {
     t_list* objetivos = objetivos_get_especies_pendientes();
-    t_list* objetivos_localizados = pokemon_filtrar_especies_encontradas(objetivos);
+    t_list* objetivos_localizados = pokemon_filtrar_especies_capturables(objetivos);
 
     // esta logica ya estaba implementada en subscripcion.c pero se duplica por simplicidad
     bool _es_asignable(void* especie) {
@@ -313,7 +322,7 @@ static t_pokemon_mapeado* encontrar_pokemon_cercano(t_entrenador* e, t_list* pok
 
     void _procesar(void* pokemon) {
         char* especie = (char*) pokemon;
-        t_list* ubicaciones = pokemon_get(especie);
+        t_list* ubicaciones = pokemon_get_disponibles(especie);
 
         if (ubicaciones == NULL) return;
 
@@ -327,6 +336,7 @@ static t_pokemon_mapeado* encontrar_pokemon_cercano(t_entrenador* e, t_list* pok
         }
 
         list_iterate(ubicaciones, (void*)_comparar_distancia);
+        list_destroy(ubicaciones);
     }
 
     list_iterate(pokemons, (void*)_procesar);

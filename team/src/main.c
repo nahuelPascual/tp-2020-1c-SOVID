@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
     pthread_join(planificador, NULL);
 
     liberar_config_team();
+    pokemon_liberar_mapa();
     log_destroy(default_logger);
     log_destroy(logger);
     free(appeared);

@@ -47,7 +47,10 @@ static void procesar_appeared_pokemon_(char* nombre, t_coord* posicion) {
         return;
     }
 
+    pthread_mutex_lock(&mx_pokemon);
     entrenador->pokemon_buscado = objetivo;
+    entrenador->pokemon_buscado->cantidad--;
+    pthread_mutex_unlock(&mx_pokemon);
     planificador_encolar_ready(entrenador);
 
     pthread_mutex_unlock(&mx_entrenadores);
@@ -98,7 +101,9 @@ static void procesar_caught_pokemon(t_paquete* paquete) {
         entrenador_concretar_captura(entrenador, mensaje->nombre, mensaje->posicion);
     } else {
         log_debug(default_logger, "El entrenador #%d no pudo capturar a %s", entrenador->id, mensaje->nombre);
-        pokemon_sacar_del_mapa(mensaje->nombre, mensaje->posicion);
+        pthread_mutex_lock(&mx_pokemon);
+        entrenador->pokemon_buscado->cantidad--;
+        pthread_mutex_unlock(&mx_pokemon);
         entrenador->pokemon_buscado = NULL; // es el mismo puntero que el del mapa y ya se libera en la funcion de arriba
     }
 

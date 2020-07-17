@@ -7,7 +7,6 @@
 extern t_log* default_logger;
 
 static t_dictionary* pokemon_localizados;
-static pthread_mutex_t mx_pokemon;
 
 static t_pokemon_mapeado* new_pokemon(char* nombre, int cantidad, t_coord* posicion);
 static void liberar_lista_mapeada(void*);
@@ -28,16 +27,31 @@ static t_pokemon_mapeado* new_pokemon(char* nombre, int cantidad, t_coord* posic
     return this_pokemon;
 }
 
-t_list* pokemon_filtrar_especies_encontradas(t_list* objetivos) {
-    bool _especie_conocida(void* obj) {
-        char* especie = (char*) obj;
-        return dictionary_has_key(pokemon_localizados, especie);
+t_list* pokemon_filtrar_especies_capturables(t_list* objetivos) {
+    t_list* pokemon_capturables = list_create();
+
+    void _check_and_add(char* obj) {
+        t_list* disponibles = pokemon_get_disponibles(obj);
+        if (disponibles) {
+            list_add(pokemon_capturables, obj);
+            list_destroy(disponibles);
+        }
     }
-    return list_filter(objetivos, (void*)_especie_conocida);
+    list_iterate(objetivos, (void*)_check_and_add);
+
+    return pokemon_capturables;
 }
 
-t_list* pokemon_get(char* especie) {
-    return (t_list*) dictionary_get(pokemon_localizados, especie);
+t_list* pokemon_get_disponibles(char* especie) {
+    t_list* ubicaciones_conocidas = dictionary_get(pokemon_localizados, especie);
+    if (!ubicaciones_conocidas) return NULL;
+
+    bool _is_available(t_pokemon_mapeado* pokemon) {
+        return pokemon->cantidad > 0;
+    }
+    t_list* disponibles = list_filter(ubicaciones_conocidas, (void*)_is_available);
+
+    return list_size(disponibles)>0 ? disponibles : (list_destroy(disponibles), NULL);
 }
 
 t_pokemon_mapeado* pokemon_agregar_al_mapa(char* nombre, int cantidad, t_coord* posicion) {
@@ -55,26 +69,6 @@ t_pokemon_mapeado* pokemon_agregar_al_mapa(char* nombre, int cantidad, t_coord* 
     pthread_mutex_unlock(&mx_pokemon);
 
     return this_pokemon;
-}
-
-void pokemon_sacar_del_mapa(char* nombre, t_coord* posicion) {
-    pthread_mutex_lock(&mx_pokemon);
-    t_list* ubicaciones_pokemon = dictionary_get(pokemon_localizados, nombre);
-    for (int i=0 ; i<list_size(ubicaciones_pokemon) ; i++) {
-        t_pokemon_mapeado* p = (t_pokemon_mapeado*) list_get(ubicaciones_pokemon, i);
-        if (p->ubicacion->x == posicion->x && p->ubicacion->y == posicion->y) {
-            p->cantidad--;
-            if (p->cantidad==0) {
-                if (list_size(ubicaciones_pokemon) == 1) {
-                    dictionary_remove(pokemon_localizados, nombre); // si es la unica ubicacion que queda, se borra pokemon del mapa
-                    liberar_lista_mapeada(ubicaciones_pokemon);
-                }
-                else list_remove_and_destroy_element(ubicaciones_pokemon, i, (void*)liberar_pokemon_mapeado);
-            }
-            break;
-        }
-    }
-    pthread_mutex_unlock(&mx_pokemon);
 }
 
 void pokemon_liberar_mapa() {

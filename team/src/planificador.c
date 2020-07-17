@@ -127,7 +127,9 @@ void planificador_verificar_deadlock_exit(t_entrenador* e) {
 void planificador_reasignar(char* pokemon) {
     log_debug(default_logger, "Se intenta replanificar la captura de %s", pokemon);
     pthread_mutex_lock(&mx_entrenadores);
+    pthread_mutex_lock(&mx_pokemon);
     t_entrenador* entrenador = entrenador_asignar(pokemon);
+    pthread_mutex_unlock(&mx_pokemon);
     if (entrenador == NULL) return;
 
     log_debug(default_logger, "Se planifica al entrenador #%d en (%d, %d) hacia la posicion (%d, %d)",
