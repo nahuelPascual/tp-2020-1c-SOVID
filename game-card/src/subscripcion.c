@@ -53,6 +53,10 @@ static void procesar_get_pokemon(t_paquete* paquete){
 }
 
 static void enviar_localized_pokemon_response(char* nombre_pokemon, t_localized_info* localized_info, uint32_t correlation_id){
+    if(localized_info->cantidad_coordenadas == 0){
+        log_info(logger, "Pokemon: %s no encontrado", nombre_pokemon);
+        return;
+    }
     t_localized_pokemon* localized_pokemon = mensaje_crear_localized_pokemon(nombre_pokemon, localized_info->cantidad_coordenadas, localized_info->coordenadas);
     t_paquete* paquete = paquete_from_localized_pokemon(localized_pokemon);
     paquete->header->correlation_id_mensaje = correlation_id;

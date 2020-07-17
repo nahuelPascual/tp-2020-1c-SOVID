@@ -57,7 +57,7 @@ static void validar_punto_montaje(){
 
     if( access(punto_montaje, R_OK|W_OK) != -1 ){
         log_info(logger, "Se encontro el punto de montaje %s y se tienen permisos de lectura y escritura.", punto_montaje);
-        //resetear_punto_montaje(punto_montaje, eliminar_dir, eliminar_file); // esto sirve para las pruebas, comentar linea en PROD ya que no deberiamos eliminar el FS
+        resetear_punto_montaje(punto_montaje, eliminar_dir, eliminar_file); // esto sirve para las pruebas, comentar linea en PROD ya que no deberiamos eliminar el FS
     } else if (access(punto_montaje, F_OK) != -1){
         log_info(logger, "Se encontro el punto de montaje %s pero no se tienen permisos de lectura y/o escritura.", punto_montaje);
     } else {
@@ -128,9 +128,9 @@ static void metadata_init(){
     char* bitmap_file_path = get_path_from_file(metadata_dir_path->path, BITMAP_FILE_NAME, FILE_EXTENSION);
     bitmap_file = abrir_archivo(bitmap_file_path, crear_default_bitarray_info);
 
-    existing_blocks = list_create();
-    resetear_punto_montaje(files_dir_path->path, NULL, resetear_bitmap);
-    list_iterate(existing_blocks, configurar_bitmap);
+//    existing_blocks = list_create();
+//    resetear_punto_montaje(files_dir_path->path, NULL, resetear_bitmap);
+//    list_iterate(existing_blocks, configurar_bitmap);
 
     free(metadata_info_path);
     free(bitmap_file_path);
@@ -279,7 +279,7 @@ void fs_new_pokemon (t_new_pokemon* new_pokemon){
    int new_block_size;
 
    t_pokemon_info* pokemon_info = crear_pokemon_info(new_pokemon->nombre);
-   check_file_open(pokemon_info);
+//   check_file_open(pokemon_info);
 
    blocks = pokemon_info->blocks;
    int cant_blocks = list_size(blocks);
@@ -334,12 +334,15 @@ static int get_first_empty_block(){
 }
 
 static int get_last_block_size(t_list* blocks) {
-    t_config* block_data = get_block_data(atoi(list_get(blocks, list_size(blocks)-1)));
     int size = 0;
-    void contar(char* key, void* value){
-        size += string_length(key) + string_length(value) + 2;
+    int blocks_size = list_size(blocks);
+    if(blocks_size != 0){
+        t_config* block_data = get_block_data(atoi(list_get(blocks, blocks_size - 1)));
+        void contar(char* key, void* value){
+            size += string_length(key) + string_length(value) + 2;
+        }
+        dictionary_iterator(block_data->properties, contar);
     }
-    dictionary_iterator(block_data->properties, contar);
     return size;
 }
 
