@@ -31,8 +31,17 @@ void test_new_pokemon(int conn) {
 void test_localized_pokemon(int conn) {
     printf("Testing localized_pokemon\n");
     char* name = "Pikachu";
+    t_list* coordenadas = list_create();
+    t_coord* coordenada_1 = malloc(sizeof(t_coord));
+    t_coord* coordenada_2 = malloc(sizeof(t_coord));
+    coordenada_1->x = 1;
+    coordenada_1->y = 1;
+    coordenada_2->x = 6;
+    coordenada_2->y = 6;
+    list_add(coordenadas, coordenada_1);
+    list_add(coordenadas, coordenada_2);
 
-    t_localized_pokemon* pokemon = mensaje_crear_localized_pokemon(name, 2, 1, 1, 6, 6);
+    t_localized_pokemon* pokemon = mensaje_crear_localized_pokemon(name, 2, coordenadas);
     t_paquete* paquete = paquete_from_localized_pokemon(pokemon);
 
     ipc_enviar_a(conn, paquete);

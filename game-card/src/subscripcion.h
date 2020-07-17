@@ -7,11 +7,12 @@
 
 #include <stdio.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include "configuration.h"
 #include "delibird-commons/utils/ipc.h"
 #include "delibird-commons/utils/logger.h"
 #include "filesystem.h"
 
-void escuchar_a(int);
+int escuchar_a(int);
 
-#endif //TEAM_SUBSCRIPCION_H
+#endif

@@ -7,7 +7,6 @@
 extern t_log* default_logger;
 extern t_log* logger;
 
-
 static void procesar_appeared_pokemon_(char*, t_coord*);
 static void procesar_appeared_pokemon(t_paquete*);
 static void procesar_localized_pokemon(t_paquete*);

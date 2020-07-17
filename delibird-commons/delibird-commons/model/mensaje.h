@@ -60,7 +60,7 @@ typedef struct {
 char* mensaje_get_tipo_as_string(t_tipo_mensaje tipo_mensaje);
 
 t_new_pokemon* mensaje_crear_new_pokemon(char* nombre, uint32_t x, uint32_t y, uint32_t cantidad);
-t_localized_pokemon* mensaje_crear_localized_pokemon(char* nombre, uint32_t cantidadPosiciones, ...);
+t_localized_pokemon* mensaje_crear_localized_pokemon(char* nombre, uint32_t cantidadPosiciones, t_list* coordenadas);
 t_get_pokemon* mensaje_crear_get_pokemon(char* nombre);
 t_appeared_pokemon* mensaje_crear_appeared_pokemon(char* nombre, uint32_t x, uint32_t y);
 t_catch_pokemon* mensaje_crear_catch_pokemon(char* nombre, uint32_t x, uint32_t y);

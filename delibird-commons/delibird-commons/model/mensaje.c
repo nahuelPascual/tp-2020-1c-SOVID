@@ -54,26 +54,14 @@ t_new_pokemon* mensaje_crear_new_pokemon(char* nombre, uint32_t x, uint32_t y, u
     return pokemon;
 }
 
-t_localized_pokemon* mensaje_crear_localized_pokemon(char* nombre, uint32_t cantidadPosiciones, ...) {
-    va_list coordenadas;
-    t_list* posiciones = list_create();
-
-    va_start(coordenadas, cantidadPosiciones * 2);
-    for(int i = 0; i < cantidadPosiciones; ++i) {
-        t_coord* posicion = malloc(sizeof(t_coord));
-        posicion->x = va_arg(coordenadas, uint32_t);
-        posicion->y = va_arg(coordenadas, uint32_t);
-        list_add(posiciones, posicion);
-    }
-    va_end(coordenadas);
-
+t_localized_pokemon* mensaje_crear_localized_pokemon(char* nombre, uint32_t cantidadPosiciones, t_list* coordenadas) {
     t_localized_pokemon* pokemon = malloc(sizeof(t_localized_pokemon));
     pokemon->nombre_len = strlen(nombre);
     pokemon->nombre = malloc(pokemon->nombre_len + 1);
     strcpy(pokemon->nombre, nombre);
     string_to_upper(pokemon->nombre);
     pokemon->posiciones_len = cantidadPosiciones;
-    pokemon->posiciones = posiciones;
+    pokemon->posiciones = coordenadas;
 
     return pokemon;
 }
