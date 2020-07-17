@@ -69,6 +69,7 @@ int entrenador_calcular_remaining(t_entrenador*);
 void log_entrenadores(t_list*);
 void entrenador_verificar_objetivos(t_entrenador*);
 t_list* entrenador_get_bloqueados(int id);
+t_entrenador* entrenador_get_execute();
 t_list* entrenador_calcular_pokemon_faltantes(t_entrenador*);
 t_list* entrenador_calcular_pokemon_sobrantes(t_entrenador*);
 bool entrenador_cumplio_objetivos(t_entrenador*);

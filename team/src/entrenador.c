@@ -420,6 +420,13 @@ t_list* entrenador_get_bloqueados(int id) {
     return list_filter(entrenadores, (void*)_is_waiting_deadlock);
 }
 
+t_entrenador* entrenador_get_execute() {
+    bool _is_executing(t_entrenador* e) {
+        return e->estado == EXECUTE;
+    }
+    return list_find(entrenadores, (void*)_is_executing);
+}
+
 static void avanzar(t_entrenador* e) {
     t_coord* actual = e->posicion;
     t_coord* objetivo = get_ubicacion_objetivo_actual(e);

@@ -23,6 +23,7 @@ static t_entrenador* elegir_entrenador();
 static bool es_SJF();
 static t_entrenador* pop();
 static void push(t_entrenador*);
+static bool debe_desalojar(t_entrenador*);
 
 pthread_t planificador_init() {
     sem_init(&sem_entrenadores_planificables, 0, 0);
@@ -93,7 +94,7 @@ static void planificar(){
 
 void planificador_encolar_ready(t_entrenador* e) {
     if (es_SJF()) { // no se deben actualizar los datos de estimacion cuando SJF hace una ejecucion parcial
-        if (algoritmo == SJF_CON_DESALOJO) entrenador_abortar_ejecucion();
+        if (algoritmo == SJF_CON_DESALOJO && debe_desalojar(e)) entrenador_abortar_ejecucion();
         if (e->estado != EXECUTE) {
             e->info->ultima_estimacion = e->info->estimado_siguiente_rafaga;
             e->info->ultima_ejecucion = e->info->ejecucion_parcial;
@@ -156,6 +157,11 @@ void planificador_admitir(t_entrenador* e) {
             e->id, e->pokemon_buscado->pokemon, e->pokemon_buscado->ubicacion->x, e->pokemon_buscado->ubicacion->y);
     planificador_encolar_ready(e);
     pthread_mutex_unlock(&mx_entrenadores);
+}
+
+static bool debe_desalojar(t_entrenador* nuevo) {
+    t_entrenador* executing = entrenador_get_execute();
+    return !executing || estimar_proxima_rafaga(nuevo) < estimar_proxima_rafaga(executing);
 }
 
 static t_entrenador* pop() {
