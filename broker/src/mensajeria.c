@@ -35,6 +35,7 @@ void _procesar_paquete_de(t_paquete* paquete, int cliente) {
         //TODO: si es redundante => que mierda informo?
         mensaje_despachable_informar_id_a(mensaje_despachable, cliente);
 
+        printf("-------------------------------------despues de almarcenar mensjes .-.................\n");
         break;
     }
     default:

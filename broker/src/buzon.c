@@ -36,7 +36,7 @@ t_mensaje_despachable* buzon_almacenar_mensaje(t_buzon* buzon, t_paquete* paquet
 
     if(!cola_es_mensaje_redundante(cola, paquete)) {
         pthread_mutex_lock(&buzon->mutex_memoria);
-        buzon_vaciar_hasta_tener(buzon, paquete->header->payload_size);
+        int eliminados = buzon_vaciar_hasta_tener(buzon, paquete->header->payload_size);
 
         mensaje_despachable = mensaje_despachable_from_paquete(paquete, buzon->memoria);
 
@@ -57,8 +57,13 @@ t_mensaje_despachable* buzon_almacenar_mensaje(t_buzon* buzon, t_paquete* paquet
             mensaje_despachable->particion_asociada->base
         );
 
+        for (int i=0; i<eliminados; i++) {
+            sem_wait(&cola->contador_mensajes_sin_despachar);
+        }
+
         cola_push_mensaje_sin_despachar(cola, mensaje_despachable);
     }
+
 
     return mensaje_despachable;
 }
@@ -87,7 +92,8 @@ void buzon_despachar_mensaje_de(t_buzon* buzon, t_cola* cola) {
     cola_push_mensaje_despachado(cola, mensaje_despachable);
 }
 
-void buzon_vaciar_hasta_tener(t_buzon* buzon, int espacio) {
+int buzon_vaciar_hasta_tener(t_buzon* buzon, int espacio) {
+    int eliminados = 0;
     while(!memoria_existe_particion_libre_con(buzon->memoria, espacio)) {
         if(memoria_corresponde_compactar(buzon->memoria)) {
             memoria_compactar(buzon->memoria);
@@ -101,6 +107,7 @@ void buzon_vaciar_hasta_tener(t_buzon* buzon, int espacio) {
         t_particion* particion_victima = memoria_get_particion_a_desocupar(buzon->memoria);
         administrador_colas_remove_and_destroy_mensaje_despachable_by_id(buzon->administrador_colas, particion_victima->id_mensaje_asociado);
         particion_desocupar(particion_victima);
+        eliminados++;
 
         log_info(logger, "PARTICION ELIMINADA - Base_particion: %i", particion_victima->base);
 
@@ -108,6 +115,7 @@ void buzon_vaciar_hasta_tener(t_buzon* buzon, int espacio) {
 
         memoria_aumentar_contador_particiones_desocupadas(buzon->memoria);
     }
+    return eliminados;
 }
 
 void buzon_registrar_suscriptor(t_buzon* buzon, t_suscriptor* suscriptor) {
@@ -144,7 +152,8 @@ void buzon_registrar_suscriptor(t_buzon* buzon, t_suscriptor* suscriptor) {
 void buzon_recibir_ack(t_buzon* buzon, t_ack* ack) {
     t_mensaje_despachable* mensaje_despachable = administrador_colas_find_mensaje_despachable_by_id(buzon->administrador_colas, ack->id_mensaje);
 
-    mensaje_despachable_add_suscriptor_recibido(mensaje_despachable, ack);
+    if (mensaje_despachable)
+        mensaje_despachable_add_suscriptor_recibido(mensaje_despachable, ack);
 }
 
 void buzon_imprimir_estado_en(t_buzon* buzon, char* path_archivo) {
@@ -172,7 +181,7 @@ void buzon_imprimir_estado_en(t_buzon* buzon, char* path_archivo) {
 
         int id = particion->id_mensaje_asociado;
 
-        fprintf(dump_file, "Partición %2i: %p - %p  [%s]  Size: %-5s LRU: %-6i Cola: %-17s ID: %i\n", i, desde, hasta, estado, tamanio_string, LRU, tipo_mensaje_string, id);
+        fprintf(dump_file, "Partici��n %2i: %p - %p  [%s]  Size: %-5s LRU: %-6i Cola: %-17s ID: %i\n", i, desde, hasta, estado, tamanio_string, LRU, tipo_mensaje_string, id);
 
         free(tamanio_string);
         i++;
