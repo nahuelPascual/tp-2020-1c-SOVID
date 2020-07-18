@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <delibird-commons/model/suscripcion.h>
 #include "subscripcion.h"
 #include "configuration.h"
@@ -31,9 +32,9 @@ int main(int argc, char **argv) {
 
     filesystem_init();
 
-    while(1){
+    sem_t sem;
+    sem_init(&sem, 0, 0);
 
-    }
     liberar();
     return EXIT_SUCCESS;
 }
