@@ -46,10 +46,12 @@ static void procesar_get_pokemon(t_paquete* paquete){
 
     t_localized_info* localized_info = fs_get_pokemon(get_pokemon);
 
-    enviar_localized_pokemon_response(get_pokemon->nombre, localized_info, correlation_id);
+    if (localized_info) {
+        enviar_localized_pokemon_response(get_pokemon->nombre, localized_info, correlation_id);
+        free(localized_info);
+    }
 
     mensaje_liberar_get_pokemon(get_pokemon);
-    free(localized_info);
     paquete_liberar(paquete);
 }
 

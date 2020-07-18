@@ -511,6 +511,7 @@ t_localized_info* fs_get_pokemon(t_get_pokemon* get_pokemon){
     localized_info->coordenadas = list_create();
     t_config* block_data;
     int block = 0;
+
     t_pokemon_info* pokemon_info = check_pokemon_info(get_pokemon->nombre);
     if(pokemon_info){
         t_list* blocks = pokemon_info->blocks;
@@ -533,6 +534,9 @@ t_localized_info* fs_get_pokemon(t_get_pokemon* get_pokemon){
         close_file(pokemon_info);
         liberar_pokemon_info(pokemon_info);
     }
+
+    if (localized_info->coordenadas == 0) return NULL;
+
     return localized_info;
 }
 
