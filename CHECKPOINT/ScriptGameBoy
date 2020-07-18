@@ -10,48 +10,48 @@ echo "-------------------------"
 
 echo "BROKER"
 
-./Debug/game-boy BROKER NEW_POKEMON Charmander 4 6 1 123
+./build/game-boy BROKER NEW_POKEMON Charmander 4 6 1 123
 echo $?
 
-./Debug/game-boy BROKER APPEARED_POKEMON Ratata 1 4 9
+./build/game-boy BROKER APPEARED_POKEMON Ratata 1 4 9
 echo $?
 
-./Debug/game-boy BROKER CATCH_POKEMON Nahuelin 4 5 123
+./build/game-boy BROKER CATCH_POKEMON Nahuelin 4 5 123
 echo $?
 
-./Debug/game-boy BROKER CAUGHT_POKEMON 9 1 123
+./build/game-boy BROKER CAUGHT_POKEMON 9 1 123
 echo $?
 
-./Debug/game-boy BROKER CAUGHT_POKEMON 8 0 123
+./build/game-boy BROKER CAUGHT_POKEMON 8 0 123
 echo $?
 
-./Debug/game-boy BROKER GET_POKEMON Pikachu 123
+./build/game-boy BROKER GET_POKEMON Pikachu 123
 echo $?
 
 echo "TEAM"
 
-./Debug/game-boy TEAM APPEARED_POKEMON Nahuelin 1 5 9 111
+./build/game-boy TEAM APPEARED_POKEMON Nahuelin 1 5 9 111
 echo $?
 
 echo "GAMECARD"
-./Debug/game-boy GAMECARD NEW_POKEMON Snorlax 3 7 1 123
+./build/game-boy GAMECARD NEW_POKEMON Snorlax 3 7 1 123
 echo $?
 
-./Debug/game-boy GAMECARD CATCH_POKEMON Pikachu 4 3 123
+./build/game-boy GAMECARD CATCH_POKEMON Pikachu 4 3 123
 echo $?
 
-./Debug/game-boy GAMECARD GET_POKEMON Pikachu 123
+./build/game-boy GAMECARD GET_POKEMON Pikachu 123
 echo $?
 
 echo "SUSCRIPTOR"
 
-./Debug/game-boy SUSCRIPTOR APPEARED_POKEMON 60
+./build/game-boy SUSCRIPTOR APPEARED_POKEMON 60
 echo $?
 
-#./Debug/game-boy SUSCRIPTOR CAUGHT_POKEMON 60
+#./build/game-boy SUSCRIPTOR CAUGHT_POKEMON 60
 #echo $?
 
-#./Debug/game-boy SUSCRIPTOR LOCALIZED_POKEMON 60
+#./build/game-boy SUSCRIPTOR LOCALIZED_POKEMON 60
 #echo $?
 
 echo "FIN DEL SCRIPT"

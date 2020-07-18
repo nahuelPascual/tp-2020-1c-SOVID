@@ -2,5 +2,5 @@
 
 cd  ../game-boy
 
-./Debug/game-boy BROKER GET_POKEMON Pikachu
-./Debug/game-boy BROKER GET_POKEMON Charmander
+./build/game-boy BROKER GET_POKEMON Pikachu
+./build/game-boy BROKER GET_POKEMON Charmander

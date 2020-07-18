@@ -1,2 +1,2 @@
 #!/bin/sh
-./Debug/game-boy GAMECARD NEW_POKEMON Pikachu 2 5 10 9
+./build/game-boy GAMECARD NEW_POKEMON Pikachu 2 5 10 9
