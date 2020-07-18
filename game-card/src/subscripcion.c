@@ -10,6 +10,7 @@ static void procesar_catch_pokemon(t_paquete*);
 static void enviar_appeared_pokemon_response(t_new_pokemon*, uint32_t);
 static void enviar_localized_pokemon_response(char*, t_localized_info*, uint32_t);
 static void enviar_caught_pokemon_response(bool, uint32_t);
+static int esperar_id(int);
 
 int escuchar_a(int con){
     while(ipc_hay_datos_para_recibir_de(con)){
@@ -118,4 +119,18 @@ static void enviar_caught_pokemon_response(bool is_caught, uint32_t correlation_
 
    mensaje_liberar_caught_pokemon(caught_pokemon);
    paquete_liberar(paquete);
+}
+
+static int esperar_id(int broker) {
+    t_paquete* paquete = ipc_recibir_de(broker);
+    t_informe_id* informe_id = paquete_to_informe_id(paquete);
+
+    logger_recibido(logger, paquete);
+
+    int id = informe_id->id_mensaje;
+
+    informe_id_liberar(informe_id);
+    paquete_liberar(paquete);
+
+    return id;
 }

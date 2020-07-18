@@ -9,6 +9,7 @@
 #define FILESYSTEM_H_
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -20,6 +21,7 @@
 #include <commons/collections/list.h>
 #include <delibird-commons/model/mensaje.h>
 #include "configuration.h"
+#include "sincronizacion.h"
 
 extern FILE* bitmap_file;
 extern t_list* pokemon_info;
@@ -72,6 +74,7 @@ extern t_path* metadata_dir_path;
 void filesystem_init();
 void fs_new_pokemon (t_new_pokemon*);
 bool fs_catch_pokemon(t_catch_pokemon*);
+bool check_file_open(t_pokemon_info*);
 t_localized_info* fs_get_pokemon(t_get_pokemon*);
 void liberar_t_path(t_path*);
 

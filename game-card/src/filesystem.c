@@ -31,12 +31,12 @@ static void save_pokemon_info(t_pokemon_info*);
 static void crear_archivo(char*, void (*func)(FILE*));
 static FILE* abrir_directorio(char*);
 static FILE* abrir_archivo(char*, void (*func)(FILE*));
-static void check_file_open(t_pokemon_info*);
 static int get_last_block_size(t_list* blocks);
 static void resetear_bitmap(FTSENT*);
 static void eliminar_dir(FTSENT*);
 static void eliminar_file(FTSENT*);
 static void configurar_bitmap(void* element);
+static void close_file(t_pokemon_info*);
 
 t_path* blocks_dir_path;
 t_path* files_dir_path;
@@ -50,6 +50,7 @@ void filesystem_init(){
     files_init();
     metadata_init();
     blocks_init();
+    sincronizacion_init();
 }
 
 static void validar_punto_montaje(){
@@ -167,12 +168,17 @@ static t_pokemon_info* check_pokemon_info(char* pokemon_name){
     string_to_upper(pokemon_name);
     char* pokemon_dir_path = get_path_from_file(files_dir_path->path, pokemon_name, NULL);
 
-    if( access( pokemon_dir_path, F_OK ) != -1 ){
-        char* pokemon_info_path = get_path_from_file(pokemon_dir_path, METADATA_FILE_NAME, FILE_EXTENSION);
-        if( access( pokemon_info_path, F_OK ) != -1 ){
-            pokemon_info = parse_pokemon_info(pokemon_name, pokemon_info_path);
+    do {
+        sincronizacion_lock(pokemon_name);
+        if( access( pokemon_dir_path, F_OK ) != -1 ){
+            char* pokemon_info_path = get_path_from_file(pokemon_dir_path, METADATA_FILE_NAME, FILE_EXTENSION);
+            if( access( pokemon_info_path, F_OK ) != -1 ){
+                pokemon_info = parse_pokemon_info(pokemon_name, pokemon_info_path);
+            }
         }
-    }
+    } while (!pokemon_info || check_file_open(pokemon_info));
+    sincronizacion_unlock(pokemon_name);
+
     free(pokemon_dir_path);
     return pokemon_info;
 }
@@ -279,7 +285,7 @@ void fs_new_pokemon (t_new_pokemon* new_pokemon){
    int new_block_size;
 
    t_pokemon_info* pokemon_info = crear_pokemon_info(new_pokemon->nombre);
-//   check_file_open(pokemon_info);
+   check_pokemon_info(new_pokemon->nombre);
 
    blocks = pokemon_info->blocks;
    int cant_blocks = list_size(blocks);
@@ -307,11 +313,8 @@ void fs_new_pokemon (t_new_pokemon* new_pokemon){
           block_data = get_block_data(atoi(last_block_number));
        }
     }else{
-        //TODO: si existe la posicion tengo que verificar que el nuevo quantity no provoque un mov. de info de bloque por superar el tamaño
+        //TODO: si existe la posicion tengo que verificar que el nuevo quantity no provoque un mov. de info de bloque por superar el tamano
     }
-    pokemon_info->size += new_block_size;
-    pokemon_info->is_open = false;
-    save_pokemon_info(pokemon_info);
 
     char* new_cantidad_pokemon = string_itoa(cantidad_pokemones + new_pokemon->cantidad);
     config_set_value(block_data, key, new_cantidad_pokemon);
@@ -320,6 +323,10 @@ void fs_new_pokemon (t_new_pokemon* new_pokemon){
 
     config_save(block_data);
     config_destroy(block_data);
+
+    pokemon_info->size += new_block_size;
+    close_file(pokemon_info);
+
     free(key);
     free(new_cantidad_pokemon);
     liberar_pokemon_info(pokemon_info);
@@ -347,7 +354,7 @@ static int get_last_block_size(t_list* blocks) {
 }
 
 static int get_block_size(int cantidad_pokemones, t_new_pokemon* new_pokemon, bool existe_posicion, char* key){
-    //TODO: esto es un asco: uso el proxy de que 1 char en disco es = 1 byte pero podria hacerlo mejor usando fseek y obteniendo el tamaño del file.
+    //TODO: esto es un asco: uso el proxy de que 1 char en disco es = 1 byte pero podria hacerlo mejor usando fseek y obteniendo el tamano del file.
     int block_size;
     char* current_cantidad_pokemones_str = string_itoa(cantidad_pokemones);
     cantidad_pokemones += new_pokemon->cantidad;
@@ -480,11 +487,11 @@ bool fs_catch_pokemon(t_catch_pokemon* catch_pokemon){
                     }
                     config_set_value(block_data, key, nueva_cant_pokemones_str);
                 }
-                pokemon_info->size -= block_size;
-                save_pokemon_info(pokemon_info);
-                sleep(config_game_card->tiempo_retardo_operacion); // solo uso el retardo para operar los bloques no con el FCB, decision de diseño.
+                sleep(config_game_card->tiempo_retardo_operacion); // solo uso el retardo para operar los bloques no con el FCB, decision de diseno.
                 config_save(block_data);
                 free(cant_pokemones_str);
+                pokemon_info->size -= block_size;
+                close_file(pokemon_info);
                 //free(nueva_cant_pokemones_str);
                 break;
             }
@@ -523,6 +530,7 @@ t_localized_info* fs_get_pokemon(t_get_pokemon* get_pokemon){
                 config_destroy(block_data);
             }
         }
+        close_file(pokemon_info);
         liberar_pokemon_info(pokemon_info);
     }
     return localized_info;
@@ -549,13 +557,24 @@ void liberar_t_path(t_path* t_path){
     free(t_path);
 }
 
-static void check_file_open(t_pokemon_info* pokemon_info){//TODO: usar diccionario de semaforos uno por tipo de pokemon
-    if(!pokemon_info->is_open){
-       log_info(logger, "El archivo %s no se encuentra abierto", pokemon_info->file_path);
-       pokemon_info->is_open = true;
-       save_pokemon_info(pokemon_info); // guardo la info en la FCB. TODO: deberia tener un memoria las FCB con acceso directo a la info.
-    }else{
-       log_error(logger, "El archivo %s se encuentra abierto.", pokemon_info->file_path);
-       //TODO: implementar politica de reintentos utilizando config_game_card->tiempo_reintento_operacion.
+bool check_file_open(t_pokemon_info* pokemon_info){
+    bool is_open = pokemon_info->is_open;
+    if(is_open){
+        sincronizacion_unlock(pokemon_info->name);
+        log_warning(logger, "El archivo %s se encuentra abierto", pokemon_info->file_path);
+        sleep(config_game_card->tiempo_reintento_operacion);
+}
+    else {
+        log_info(logger, "El archivo %s no se encuentra abierto", pokemon_info->file_path);
+        pokemon_info->is_open = true;
+        save_pokemon_info(pokemon_info); // guardo la info en la FCB. TODO: deberia tener un memoria las FCB con acceso directo a la info.
     }
+    return is_open;
+}
+
+static void close_file(t_pokemon_info* pokemon_info) {
+    sincronizacion_lock(pokemon_info->name);
+    pokemon_info->is_open = false;
+    save_pokemon_info(pokemon_info);
+    sincronizacion_unlock(pokemon_info->name);
 }
