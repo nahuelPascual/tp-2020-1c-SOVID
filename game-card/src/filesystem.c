@@ -176,7 +176,7 @@ static t_pokemon_info* check_pokemon_info(char* pokemon_name){
                 pokemon_info = parse_pokemon_info(pokemon_name, pokemon_info_path);
             }
         }
-    } while (!pokemon_info || check_file_open(pokemon_info));
+    } while (pokemon_info && check_file_open(pokemon_info));
     sincronizacion_unlock(pokemon_name);
 
     free(pokemon_dir_path);
