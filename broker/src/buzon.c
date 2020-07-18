@@ -181,7 +181,7 @@ void buzon_imprimir_estado_en(t_buzon* buzon, char* path_archivo) {
 
         int id = particion->id_mensaje_asociado;
 
-        fprintf(dump_file, "Partici��n %2i: %p - %p  [%s]  Size: %-5s LRU: %-6i Cola: %-17s ID: %i\n", i, desde, hasta, estado, tamanio_string, LRU, tipo_mensaje_string, id);
+        fprintf(dump_file, "Particion %2i: %p - %p  [%s]  Size: %-5s LRU: %-6i Cola: %-17s ID: %i\n", i, desde, hasta, estado, tamanio_string, LRU, tipo_mensaje_string, id);
 
         free(tamanio_string);
         i++;
