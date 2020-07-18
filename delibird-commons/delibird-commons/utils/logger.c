@@ -417,7 +417,7 @@ void logger_recibido(t_log* logger, t_paquete* paquete){
     char* info = crearStringPaquete(paquete);
     switch(flag_error){
         case CORRECTO:
-            if(paquete->header->tipo_mensaje == MENSAJE)
+            if(paquete->header->tipo_paquete == MENSAJE)
                 log_info(logger, "PAQUETE RECIBIDO - %s | %s", infoHeader, info);
             else
                 log_info(logger, "PAQUETE RECIBIDO - %s", info);
@@ -445,7 +445,7 @@ void logger_enviado(t_log* logger, t_paquete* paquete){
     char* info = crearStringPaquete(paquete);
     switch(flag_error){
         case CORRECTO:
-            if(paquete->header->tipo_mensaje == MENSAJE)
+            if(paquete->header->tipo_paquete == MENSAJE)
                 log_info(logger, "PAQUETE ENVIADO - %s | %s", infoHeader, info);
             else
                 log_info(logger, "PAQUETE ENVIADO - %s", info);
