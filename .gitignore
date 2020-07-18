@@ -54,5 +54,15 @@ dkms.conf
 # Eclipse files
 .metadata/
 RemoteSystemsTempFiles/
+.cproject
+.project
+.settings/
 Debug/
 Release/
+
+# Logs files
+*.log
+*.txt
+
+# Binaries
+build/
