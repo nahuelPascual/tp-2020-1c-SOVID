@@ -3,6 +3,8 @@
 #PARA DAR PERMISOS AL SCRIPT:
 #chmod 755 ScriptGameBoy en consola
 
+cd  ../game-boy
+
 echo "TESTING GAME-BOY"
 echo "-------------------------"
 
