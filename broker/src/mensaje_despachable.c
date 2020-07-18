@@ -43,7 +43,8 @@ t_paquete* mensaje_despachable_to_paquete(t_mensaje_despachable* mensaje_despach
   paquete->header = _rearmar_header_con(mensaje_despachable);
   paquete->payload = malloc(mensaje_despachable->size);
 
-  void* direccion_fisica = memoria_get_direccion_fisica_de(memoria, mensaje_despachable->particion_asociada);
+  void* direccion_fisica = memoria_get_direccion_fisica(memoria, mensaje_despachable->particion_asociada->base);
+  mensaje_despachable->particion_asociada->tiempo_ultima_referencia = clock();
 
   memcpy(paquete->payload, direccion_fisica, mensaje_despachable->size);
 

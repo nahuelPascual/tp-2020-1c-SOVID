@@ -45,6 +45,8 @@ t_mensaje_despachable* buzon_almacenar_mensaje(t_buzon* buzon, t_paquete* paquet
         memoria_dividir_particion_si_es_mas_grande_que(buzon->memoria, mensaje_despachable->particion_asociada, mensaje_despachable->size);
 
         memoria_asignar_paquete_a_la_particion(buzon->memoria, paquete, mensaje_despachable->particion_asociada);
+
+        particion_ocupar(mensaje_despachable->particion_asociada);
         pthread_mutex_unlock(&buzon->mutex_memoria);
 
         log_info(
@@ -97,9 +99,12 @@ void buzon_vaciar_hasta_tener(t_buzon* buzon, int espacio) {
         }
 
         t_particion* particion_victima = memoria_get_particion_a_desocupar(buzon->memoria);
-
         administrador_colas_remove_and_destroy_mensaje_despachable_by_id(buzon->administrador_colas, particion_victima->id_mensaje_asociado);
-        memoria_desocupar_particion(buzon->memoria, particion_victima);
+        particion_desocupar(particion_victima);
+
+        log_info(logger, "PARTICION ELIMINADA - Base_particion: %i", particion_victima->base);
+
+        memoria_consolidar(buzon->memoria);
 
         memoria_aumentar_contador_particiones_desocupadas(buzon->memoria);
     }
@@ -153,9 +158,8 @@ void buzon_imprimir_estado_en(t_buzon* buzon, char* path_archivo) {
 
     int i = 0;
     void _write(t_particion* particion) {
-        //TODO: mas logica repetida del get_direccion_fisica
-        void* desde = buzon->memoria->data + particion->base;
-        void* hasta = buzon->memoria->data + particion->base + particion->tamanio - 1;
+        void* desde = memoria_get_direccion_fisica(buzon->memoria, particion->base);
+        void* hasta = memoria_get_direccion_fisica(buzon->memoria, particion->base + particion->tamanio - 1);
         char* estado = particion->esta_libre ? "L" : "X";
 
         char* tamanio_string = string_itoa(particion->tamanio);

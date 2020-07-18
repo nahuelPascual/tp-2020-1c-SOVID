@@ -58,12 +58,12 @@ void test_memoria_sin_vaciado() {
 
     printf("1° TEST: Consolido lista previamente ordenada\n\n");
 
-    list_clean_and_destroy_elements(memoria->particiones, (void*) memoria_liberar_particion);
+    list_clean_and_destroy_elements(memoria->particiones, (void*) particion_liberar);
 
-    t_particion* particion0 = memoria_crear_particion(0, 10);
-    t_particion* particion1 = memoria_crear_particion(10, 10);
-    t_particion* particion2 = memoria_crear_particion(20, 10);
-    t_particion* particion3 = memoria_crear_particion(30, 10);
+    t_particion* particion0 = particion_crear(0, 10);
+    t_particion* particion1 = particion_crear(10, 10);
+    t_particion* particion2 = particion_crear(20, 10);
+    t_particion* particion3 = particion_crear(30, 10);
     particion3->esta_libre = false;
 
     list_add(memoria->particiones, particion0);
@@ -73,15 +73,15 @@ void test_memoria_sin_vaciado() {
 
     probar_consolidacion(memoria);
 
-    list_clean_and_destroy_elements(memoria->particiones, (void*) memoria_liberar_particion);
+    list_clean_and_destroy_elements(memoria->particiones, (void*) particion_liberar);
 
     printf("2° TEST: No tengo que consolidar nada\n\n");
 
-    t_particion* particion4 = memoria_crear_particion(0, 10);
-    t_particion* particion5 = memoria_crear_particion(10, 10);
+    t_particion* particion4 = particion_crear(0, 10);
+    t_particion* particion5 = particion_crear(10, 10);
     particion5->esta_libre = false;
-    t_particion* particion6 = memoria_crear_particion(20, 10);
-    t_particion* particion7 = memoria_crear_particion(30, 10);
+    t_particion* particion6 = particion_crear(20, 10);
+    t_particion* particion7 = particion_crear(30, 10);
     particion7->esta_libre = false;
 
     list_add(memoria->particiones, particion4);
@@ -91,27 +91,27 @@ void test_memoria_sin_vaciado() {
 
     probar_consolidacion(memoria);
 
-    list_clean_and_destroy_elements(memoria->particiones, (void*) memoria_liberar_particion);
+    list_clean_and_destroy_elements(memoria->particiones, (void*) particion_liberar);
 
     printf("3° TEST: Consolido lista de una sola particion\n\n");
 
-    t_particion* particion8 = memoria_crear_particion(0, 10);
+    t_particion* particion8 = particion_crear(0, 10);
 
     list_add(memoria->particiones, particion8);
 
     probar_consolidacion(memoria);
 
-    list_clean_and_destroy_elements(memoria->particiones, (void*) memoria_liberar_particion);
+    list_clean_and_destroy_elements(memoria->particiones, (void*) particion_liberar);
 
     printf("4° TEST: Compacto una lista de particiones\n\n");
 
-    t_particion* particion14 = memoria_crear_particion(0, 10);
-    t_particion* particion15 = memoria_crear_particion(10, 10);
+    t_particion* particion14 = particion_crear(0, 10);
+    t_particion* particion15 = particion_crear(10, 10);
     particion15->esta_libre = false;
-    t_particion* particion16 = memoria_crear_particion(20, 10);
-    t_particion* particion17 = memoria_crear_particion(30, 10);
-    t_particion* particion18 = memoria_crear_particion(40, 10);
-    t_particion* particion19 = memoria_crear_particion(50, 10);
+    t_particion* particion16 = particion_crear(20, 10);
+    t_particion* particion17 = particion_crear(30, 10);
+    t_particion* particion18 = particion_crear(40, 10);
+    t_particion* particion19 = particion_crear(50, 10);
 
     list_add(memoria->particiones, particion14);
     list_add(memoria->particiones, particion15);
@@ -122,18 +122,18 @@ void test_memoria_sin_vaciado() {
 
     probar_compactacion(memoria);
 
-    list_clean_and_destroy_elements(memoria->particiones, (void*) memoria_liberar_particion);
+    list_clean_and_destroy_elements(memoria->particiones, (void*) particion_liberar);
 
     printf("5° TEST: Compacto lista que termina con una particion ocupada\n\n");
 
-    t_particion* particion20 = memoria_crear_particion(0, 10);
-    t_particion* particion21 = memoria_crear_particion(10, 10);
+    t_particion* particion20 = particion_crear(0, 10);
+    t_particion* particion21 = particion_crear(10, 10);
     particion21->esta_libre = false;
-    t_particion* particion22 = memoria_crear_particion(20, 10);
-    t_particion* particion23 = memoria_crear_particion(30, 10);
+    t_particion* particion22 = particion_crear(20, 10);
+    t_particion* particion23 = particion_crear(30, 10);
     particion23->esta_libre = false;
-    t_particion* particion24 = memoria_crear_particion(40, 10);
-    t_particion* particion25 = memoria_crear_particion(50, 10);
+    t_particion* particion24 = particion_crear(40, 10);
+    t_particion* particion25 = particion_crear(50, 10);
     particion25->esta_libre = false;
 
     list_add(memoria->particiones, particion20);
@@ -145,19 +145,19 @@ void test_memoria_sin_vaciado() {
 
     probar_compactacion(memoria);
 
-    list_clean_and_destroy_elements(memoria->particiones, (void*) memoria_liberar_particion);
+    list_clean_and_destroy_elements(memoria->particiones, (void*) particion_liberar);
 
     printf("6° TEST: Compacto lista que termina con particion libre\n\n");
 
-    t_particion* particion26 = memoria_crear_particion(0, 10);
+    t_particion* particion26 = particion_crear(0, 10);
     particion26->esta_libre = false;
-    t_particion* particion27 = memoria_crear_particion(10, 10);
-    t_particion* particion28 = memoria_crear_particion(20, 10);
+    t_particion* particion27 = particion_crear(10, 10);
+    t_particion* particion28 = particion_crear(20, 10);
     particion28->esta_libre = false;
-    t_particion* particion29 = memoria_crear_particion(30, 10);
-    t_particion* particion30 = memoria_crear_particion(40, 10);
+    t_particion* particion29 = particion_crear(30, 10);
+    t_particion* particion30 = particion_crear(40, 10);
     particion30->esta_libre = false;
-    t_particion* particion31 = memoria_crear_particion(50, 10);
+    t_particion* particion31 = particion_crear(50, 10);
 
     list_add(memoria->particiones, particion26);
     list_add(memoria->particiones, particion27);
@@ -168,13 +168,13 @@ void test_memoria_sin_vaciado() {
 
     probar_compactacion(memoria);
 
-    list_clean_and_destroy_elements(memoria->particiones, (void*) memoria_liberar_particion);
+    list_clean_and_destroy_elements(memoria->particiones, (void*) particion_liberar);
 
     printf("7° TEST: Recupero mensaje despues de compactar\n\n");
 
-    t_particion* particion32 = memoria_crear_particion(0, 1);
-    t_particion* particion33 = memoria_crear_particion(1, 30);
-    t_particion* particion34 = memoria_crear_particion(31, 20);
+    t_particion* particion32 = particion_crear(0, 1);
+    t_particion* particion33 = particion_crear(1, 30);
+    t_particion* particion34 = particion_crear(31, 20);
 
     list_add(memoria->particiones, particion32);
     list_add(memoria->particiones, particion33);
@@ -192,12 +192,12 @@ void test_memoria_sin_vaciado() {
 
     paquete->payload = malloc(paquete->header->payload_size);
 
-    memcpy(paquete->payload, memoria_get_direccion_fisica_de(memoria, particion33), paquete->header->payload_size);
+    memcpy(paquete->payload, memoria_get_direccion_fisica(memoria, particion33->base), paquete->header->payload_size);
 
     t_new_pokemon* pokemon_recuperado = paquete_to_new_pokemon(paquete);
     printf("Recupere un %s", pokemon_recuperado->nombre);
 
-    list_clean_and_destroy_elements(memoria->particiones, (void*) memoria_liberar_particion);
+    list_clean_and_destroy_elements(memoria->particiones, (void*) particion_liberar);
 }
 
 void test_memoria_con_vaciado() {
@@ -239,16 +239,16 @@ void test_memoria_con_vaciado() {
 
         if(i == 2){
             t_particion* primera_particion = list_get(buzon->memoria->particiones,0);
-            memoria_get_direccion_fisica_de(buzon->memoria, primera_particion);
+            memoria_get_direccion_fisica(buzon->memoria, primera_particion->base);
         }
     }
 }
 
 void test_buddy_system() {
     printf("TEST: la funcion recibe 2 particiones que son buddies\n\n");
-    t_particion* particion1 = memoria_crear_particion(0, 32);
-    t_particion* particion2 = memoria_crear_particion(32, 32);
-    if(memoria_son_particiones_buddies(particion1, particion2))
+    t_particion* particion1 = particion_crear(0, 32);
+    t_particion* particion2 = particion_crear(32, 32);
+    if(particion_es_buddy_de(particion1, particion2))
         printf("Esta andando bien :)\n");
     else
         printf("La puta madre, no de nuevo :(\n");
@@ -256,9 +256,9 @@ void test_buddy_system() {
     fflush(stdout);
 
     printf("TEST: la funcion recibe 2 particiones con distinto tamanio\n\n");
-    t_particion* particion3 = memoria_crear_particion(0, 32);
-    t_particion* particion4 = memoria_crear_particion(32, 64);
-    if(!memoria_son_particiones_buddies(particion3, particion4))
+    t_particion* particion3 = particion_crear(0, 32);
+    t_particion* particion4 = particion_crear(32, 64);
+    if(!particion_es_buddy_de(particion3, particion4))
         printf("Esta andando bien :)\n");
     else
         printf("La puta madre, no de nuevo :(\n");
@@ -266,9 +266,9 @@ void test_buddy_system() {
     fflush(stdout);
 
     printf("TEST: la funcion recibe 2 particiones con el mismo tamanio pero no son buddies\n\n");
-    t_particion* particion5 = memoria_crear_particion(0, 32);
-    t_particion* particion6 = memoria_crear_particion(64, 32);
-    if(!memoria_son_particiones_buddies(particion5, particion6))
+    t_particion* particion5 = particion_crear(0, 32);
+    t_particion* particion6 = particion_crear(64, 32);
+    if(!particion_es_buddy_de(particion5, particion6))
         printf("Esta andando bien :)\n");
     else
         printf("La puta madre, no de nuevo :(\n");

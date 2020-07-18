@@ -59,7 +59,6 @@ bool administrador_colas_remove_and_destroy_mensaje_despachable_by_id(t_administ
     return eliminado;
 }
 
-//TODO: Refactor de nombre y no usar find
 t_cola* administrador_colas_find_cola_by_id_mensaje(t_administrador_colas* administrador_colas, uint32_t id_mensaje) {
     for(t_tipo_mensaje tipo_mensaje = 0; tipo_mensaje < dictionary_size(administrador_colas->colas); tipo_mensaje++) {
         t_cola* cola = administrador_colas_get_cola_from(administrador_colas, tipo_mensaje);
