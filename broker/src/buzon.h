@@ -29,7 +29,7 @@ t_buzon* buzon_crear(
 
 t_mensaje_despachable* buzon_almacenar_mensaje(t_buzon* buzon, t_paquete* paquete);
 void buzon_despachar_mensaje_de(t_buzon* buzon, t_cola* cola);
-int buzon_vaciar_hasta_tener(t_buzon* buzon, int espacio);
+void buzon_vaciar_hasta_tener(t_buzon* buzon, int espacio);
 
 void buzon_registrar_suscriptor(t_buzon* buzon, t_suscriptor* suscriptor);
 
