@@ -77,10 +77,14 @@ bool cola_es_mensaje_redundante(t_cola* cola, t_paquete* paquete) {
     }
 
     pthread_mutex_lock(&cola->mutex_mensajes_sin_despachar);
-    bool redundante = list_any_satisfy(cola->mensajes_sin_despachar->elements, (void*) _is_the_one);
+    bool redundante_sin_despachar = list_any_satisfy(cola->mensajes_sin_despachar->elements, (void*) _is_the_one);
     pthread_mutex_unlock(&cola->mutex_mensajes_sin_despachar);
 
-    return redundante;
+    pthread_mutex_lock(&cola->mutex_mensajes_despachados);
+    bool redundante_despachado = list_any_satisfy(cola->mensajes_despachados->elements, (void*) _is_the_one);
+    pthread_mutex_unlock(&cola->mutex_mensajes_despachados);
+
+    return redundante_sin_despachar || redundante_despachado;
 }
 
 t_mensaje_despachable* cola_find_mensaje_despachable_by_id(t_cola* cola, uint32_t id) {

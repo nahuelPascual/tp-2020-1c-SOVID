@@ -42,14 +42,15 @@ void logger_mensaje_recibido(t_paquete* paquete) {
 }
 
 void logger_mensaje_almacenado(t_mensaje_despachable* mensaje_despachable) {
-    if(mensaje_despachable)
-        log_info(logger, "\tMENSAJE ALMACENADO { id: %i | size: %i } ==> PARTICION ASIGNADA { base: %i | size: %i }",
-                mensaje_despachable->id,
-                mensaje_despachable->size,
-                mensaje_despachable->particion_asociada->base,
-                mensaje_despachable->particion_asociada->tamanio);
-    else
-        log_warning(logger_debug, "El MENSAJE fue ignorado por ser REDUNDANTE");
+    log_info(logger, "\tMENSAJE ALMACENADO { id: %i | size: %i } ==> PARTICION ASIGNADA { base: %i | size: %i }",
+            mensaje_despachable->id,
+            mensaje_despachable->size,
+            mensaje_despachable->particion_asociada->base,
+            mensaje_despachable->particion_asociada->tamanio);
+}
+
+void logger_mensaje_redundante() {
+    log_warning(logger_debug, "El MENSAJE fue ignorado por ser REDUNDANTE");
 }
 
 void logger_anda_a_saber_que_llego() {

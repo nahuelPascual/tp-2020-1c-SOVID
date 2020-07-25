@@ -56,6 +56,8 @@ t_mensaje_despachable* buzon_almacenar_mensaje(t_buzon* buzon, t_paquete* paquet
 
         cola_push_mensaje_sin_despachar(cola, mensaje_despachable);
     }
+    else
+        logger_mensaje_redundante();
 
     return mensaje_despachable;
 }
