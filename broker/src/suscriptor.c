@@ -15,3 +15,7 @@ t_suscriptor* suscriptor_crear(uint32_t id, t_tipo_mensaje tipo_mensaje, int soc
 
     return suscriptor;
 }
+
+void suscriptor_liberar(t_suscriptor* suscriptor) {
+    free(suscriptor);
+}

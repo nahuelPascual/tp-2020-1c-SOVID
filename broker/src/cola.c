@@ -60,7 +60,7 @@ void cola_add_or_update_suscriptor(t_cola* cola, t_suscriptor* un_suscriptor) {
     }
 
     pthread_mutex_lock(&cola->mutex_suscriptores);
-    list_remove_by_condition(cola->suscriptores, (void*) _is_the_one);
+    list_remove_and_destroy_by_condition(cola->suscriptores, (void*) _is_the_one, (void*) suscriptor_liberar);
     list_add(cola->suscriptores, un_suscriptor);
     pthread_mutex_unlock(&cola->mutex_suscriptores);
 }
@@ -115,6 +115,9 @@ bool cola_remove_and_destroy_mensaje_despachable_by_id(t_cola* cola, uint32_t id
     pthread_mutex_unlock(&cola->mutex_mensajes_sin_despachar);
 
     if(mensaje_sin_despachar) {
+        logger_mensaje_sin_despachar_eliminado(cola, mensaje_sin_despachar);
+
+        sem_wait(&cola->contador_mensajes_sin_despachar);
         mensaje_despachable_liberar(mensaje_sin_despachar);
         return true;
     }

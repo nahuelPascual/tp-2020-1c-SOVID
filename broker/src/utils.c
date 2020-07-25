@@ -10,7 +10,7 @@
 int get_siguiente_potencia_de_2(int numero) {
     int potencia = 1;
     while(potencia < numero)
-        potencia*=2;
+        potencia *= 2;
 
     return potencia;
 }

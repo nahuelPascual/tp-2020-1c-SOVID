@@ -17,5 +17,6 @@ typedef struct {
 } t_suscriptor;
 
 t_suscriptor* suscriptor_crear(uint32_t id, t_tipo_mensaje tipo_mensaje, int socket_asociado);
+void suscriptor_liberar(t_suscriptor* suscriptor);
 
 #endif /* SUSCRIPTOR_H_ */

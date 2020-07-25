@@ -14,8 +14,8 @@ t_configuracion* configuracion_crear() {
     t_config* config = config_create(config_path);
     bool configuracion_valida = true;
 
-    if (!config) {
-        printf("Archivo '%s' no encontrado\n", config_path);
+    if(!config) {
+        logger_archivo_no_encontrado(config_path);
         exit(EXIT_FAILURE);
     }
 
@@ -62,7 +62,7 @@ t_configuracion* configuracion_crear() {
     configuracion->dump_file = string_duplicate(config_get_string_value(config, "DUMP_FILE"));
 
     if(!configuracion_valida) {
-        printf("Archivo '%s' posee configuraciones invalidas\n", config_path);
+        logger_archivo_invalido(config_path);
         exit(EXIT_FAILURE);
     }
 

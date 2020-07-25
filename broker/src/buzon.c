@@ -47,15 +47,12 @@ t_mensaje_despachable* buzon_almacenar_mensaje(t_buzon* buzon, t_paquete* paquet
         memoria_asignar_paquete_a_la_particion(buzon->memoria, paquete, mensaje_despachable->particion_asociada);
 
         particion_ocupar(mensaje_despachable->particion_asociada);
-        pthread_mutex_unlock(&buzon->mutex_memoria);
 
-        log_info(
-            logger,
-            "MENSAJE ALMACENADO - Id_mensaje: %i | Size_mensaje: %i | Base_particion: %i",
-            mensaje_despachable->id,
-            mensaje_despachable->size,
-            mensaje_despachable->particion_asociada->base
-        );
+        logger_mensaje_almacenado(mensaje_despachable);
+        logger_detalle_memoria(buzon->memoria);
+        logger_espacio_ocupado(buzon->memoria);
+        logger_espacio_libre(buzon->memoria);
+        pthread_mutex_unlock(&buzon->mutex_memoria);
 
         cola_push_mensaje_sin_despachar(cola, mensaje_despachable);
     }
@@ -76,7 +73,8 @@ void buzon_despachar_mensaje_de(t_buzon* buzon, t_cola* cola) {
 
         if(enviado) {
             mensaje_despachable_add_suscriptor_enviado(mensaje_despachable, suscriptor);
-            logger_enviado_a_un_suscriptor(logger, paquete, suscriptor->id);
+
+            logger_mensaje_enviado(paquete, suscriptor);
         }
 
         paquete_liberar(paquete);
@@ -90,7 +88,11 @@ void buzon_despachar_mensaje_de(t_buzon* buzon, t_cola* cola) {
 void buzon_vaciar_hasta_tener(t_buzon* buzon, int espacio) {
     while(!memoria_existe_particion_libre_con(buzon->memoria, espacio)) {
         if(memoria_corresponde_compactar(buzon->memoria)) {
+            logger_compactacion_ejecutada();
+
             memoria_compactar(buzon->memoria);
+
+            logger_detalle_memoria(buzon->memoria);
 
             memoria_resetear_contador_particiones_desocupadas(buzon->memoria);
 
@@ -99,12 +101,18 @@ void buzon_vaciar_hasta_tener(t_buzon* buzon, int espacio) {
         }
 
         t_particion* particion_victima = memoria_get_particion_a_desocupar(buzon->memoria);
+        int id_mensaje_victima = particion_victima->id_mensaje_asociado;
         administrador_colas_remove_and_destroy_mensaje_despachable_by_id(buzon->administrador_colas, particion_victima->id_mensaje_asociado);
         particion_desocupar(particion_victima);
 
-        log_info(logger, "PARTICION ELIMINADA - Base_particion: %i", particion_victima->base);
+        logger_mensaje_eliminado(id_mensaje_victima, particion_victima);
+        logger_detalle_memoria(buzon->memoria);
 
-        memoria_consolidar(buzon->memoria);
+        int cantidad_particiones_consolidadas = memoria_consolidar(buzon->memoria);
+
+        if(cantidad_particiones_consolidadas > 1) {
+            logger_detalle_memoria(buzon->memoria);
+        }
 
         memoria_aumentar_contador_particiones_desocupadas(buzon->memoria);
     }
@@ -131,7 +139,7 @@ void buzon_registrar_suscriptor(t_buzon* buzon, t_suscriptor* suscriptor) {
                 if(!fue_enviado_anteriormente)
                     mensaje_despachable_add_suscriptor_enviado(mensaje_despachable, suscriptor);
 
-                logger_enviado_a_un_suscriptor(logger, paquete, suscriptor->id);
+                logger_mensaje_enviado(paquete, suscriptor);
             }
 
             paquete_liberar(paquete);
@@ -144,8 +152,15 @@ void buzon_registrar_suscriptor(t_buzon* buzon, t_suscriptor* suscriptor) {
 void buzon_recibir_ack(t_buzon* buzon, t_ack* ack) {
     t_mensaje_despachable* mensaje_despachable = administrador_colas_find_mensaje_despachable_by_id(buzon->administrador_colas, ack->id_mensaje);
 
-    if(mensaje_despachable)
+    if(mensaje_despachable) {
         mensaje_despachable_add_suscriptor_recibido(mensaje_despachable, ack);
+
+        if(mensaje_despachable_tiene_todos_los_acks(mensaje_despachable))
+            logger_mensaje_tiene_todos_los_acks(mensaje_despachable);
+    }
+    else {
+        logger_mensaje_eliminado_antes_de_recibir_ack(ack);
+    }
 }
 
 void buzon_imprimir_estado_en(t_buzon* buzon, char* path_archivo) {
@@ -184,6 +199,4 @@ void buzon_imprimir_estado_en(t_buzon* buzon, char* path_archivo) {
     pthread_mutex_unlock(&buzon->mutex_memoria);
 
     fclose(dump_file);
-
-    log_info(logger, "DUMP DE CACHE EJECUTADO");
 }

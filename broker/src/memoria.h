@@ -12,12 +12,10 @@
 
 #include <delibird-commons/utils/paquete.h>
 #include <delibird-commons/utils/list.h>
-#include <delibird-commons/utils/logger.h>
 
 #include "utils.h"
 #include "particion.h"
-
-extern t_log* logger;
+#include "logger.h"
 
 typedef enum {
     PARTICIONES_DINAMICAS, BUDDY_SYSTEM
@@ -66,6 +64,6 @@ void memoria_resetear_contador_particiones_desocupadas(t_memoria* memoria);
 
 bool memoria_corresponde_compactar(t_memoria* memoria);
 void memoria_compactar(t_memoria* memoria);
-void memoria_consolidar(t_memoria* memoria);
+int memoria_consolidar(t_memoria* memoria);
 
 #endif /* MEMORIA_H_ */

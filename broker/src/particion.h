@@ -14,15 +14,15 @@
 #include <time.h>
 
 typedef struct {
-	bool esta_libre;
+    bool esta_libre;
 
-	int base;
-	int tamanio;
+    int base;
+    int tamanio;
 
-	int tiempo_carga;
-	int tiempo_ultima_referencia;
+    int tiempo_carga;
+    int tiempo_ultima_referencia;
 
-	uint32_t id_mensaje_asociado;
+    uint32_t id_mensaje_asociado;
 } t_particion;
 
 t_particion* particion_crear(int base, int tamanio);

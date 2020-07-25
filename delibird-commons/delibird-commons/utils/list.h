@@ -18,4 +18,6 @@ void* list_min_by(t_list* lista, void* key_extractor(void*));
 
 int list_index_of(t_list* lista, void* elemento_a_buscar);
 
+int list_sum_by(t_list* lista, int (*key_extractor)(void*));
+
 #endif /* UTILS_LIST_H_ */
