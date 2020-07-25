@@ -81,13 +81,12 @@ int main(int argc, char **argv) {
         log_info(logger, "Termina suscripcion a cola %s", mensaje_get_tipo_as_string(tipo_mensaje));
 
         pthread_cancel(hilo);
-    }
-    else {
+    } else{
         if(ipc_hay_datos_para_recibir_de(conexion)) {
-            t_paquete* paquete_respuesta = ipc_recibir_de(conexion);
-            logger_recibido(logger, paquete_respuesta);
-            paquete_liberar(paquete_respuesta);
-        }
+              t_paquete* paquete_respuesta = ipc_recibir_de(conexion);
+              logger_recibido(logger, paquete_respuesta);
+              paquete_liberar(paquete_respuesta);
+          }
     }
 
     paquete_liberar(paquete);

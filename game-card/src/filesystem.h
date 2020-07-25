@@ -1,3 +1,4 @@
+
 /*
  * filesystem.h
  *
@@ -72,7 +73,7 @@ extern t_path* files_dir_path;
 extern t_path* metadata_dir_path;
 
 void filesystem_init();
-void fs_new_pokemon (t_new_pokemon*);
+int fs_new_pokemon (t_new_pokemon*);
 bool fs_catch_pokemon(t_catch_pokemon*);
 bool check_file_open(t_pokemon_info*);
 t_localized_info* fs_get_pokemon(t_get_pokemon*);

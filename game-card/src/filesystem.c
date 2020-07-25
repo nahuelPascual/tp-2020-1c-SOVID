@@ -11,7 +11,7 @@ static void validar_punto_montaje();
 static void metadata_init();
 static void files_init();
 static void blocks_init();
-static void resetear_punto_montaje(const char* punto_montaje, void(*closure_dir)(FTSENT*), void(*closure_file)(FTSENT*));
+static void recorrer_arbol_directorio(const char* punto_montaje, void(*closure_dir)(FTSENT*), void(*closure_file)(FTSENT*));
 static t_path* crear_dir_from_root(char*);
 static char* get_path_from_file(char*, char*, char*);
 static t_pokemon_info* parse_pokemon_info(char*, char*);
@@ -21,22 +21,19 @@ static void crear_default_pokemon_info(FILE*);
 static void crear_default_bitarray_info(FILE*);
 static char* string_from_list(t_list*);
 static char* get_block_key(t_coord*);
-static int get_block_size(int, t_new_pokemon*, bool, char*);
 static int get_first_empty_block();
-static t_config* get_block_data(int);
 static void liberar_pokemon_info(t_pokemon_info*);
 static t_pokemon_info* crear_pokemon_info(char*);
 static t_pokemon_info* check_pokemon_info(char*);
 static void save_pokemon_info(t_pokemon_info*);
 static void crear_archivo(char*, void (*func)(FILE*));
 static FILE* abrir_directorio(char*);
-static FILE* abrir_archivo(char*, void (*func)(FILE*));
-static int get_last_block_size(t_list* blocks);
+static FILE* abrir_archivo(char*, void (*func)(FILE*), bool);
 static void resetear_bitmap(FTSENT*);
-static void eliminar_dir(FTSENT*);
-static void eliminar_file(FTSENT*);
 static void configurar_bitmap(void* element);
 static void close_file(t_pokemon_info*);
+static t_list* parse_blocks_info(t_list*, t_pokemon_info*);
+static char* get_block_data_from_list(t_list*, t_pokemon_info*);
 
 t_path* blocks_dir_path;
 t_path* files_dir_path;
@@ -44,8 +41,10 @@ t_path* metadata_dir_path;
 FILE* bitmap_file;
 t_bitarray* bitarray;
 t_list* existing_blocks;
+pthread_mutex_t lock;
 
 void filesystem_init(){
+    pthread_mutex_init(&lock, NULL);
     validar_punto_montaje();
     files_init();
     metadata_init();
@@ -58,7 +57,6 @@ static void validar_punto_montaje(){
 
     if( access(punto_montaje, R_OK|W_OK) != -1 ){
         log_info(logger, "Se encontro el punto de montaje %s y se tienen permisos de lectura y escritura.", punto_montaje);
-        resetear_punto_montaje(punto_montaje, eliminar_dir, eliminar_file); // esto sirve para las pruebas, comentar linea en PROD ya que no deberiamos eliminar el FS
     } else if (access(punto_montaje, F_OK) != -1){
         log_info(logger, "Se encontro el punto de montaje %s pero no se tienen permisos de lectura y/o escritura.", punto_montaje);
     } else {
@@ -70,28 +68,8 @@ static void validar_punto_montaje(){
     }
 }
 
-static void eliminar_dir(FTSENT* dir_path){
-    if(remove(dir_path->fts_accpath) == 0)
-        log_debug(logger, "Se elimino el directorio %s correctamente.", dir_path->fts_path);
-    else
-        log_error(logger, "Error eliminando el directorio %s %s.", dir_path->fts_path, strerror(dir_path->fts_errno));
-}
-
-static void eliminar_file(FTSENT* file_path){
-    if(remove(file_path->fts_accpath) == 0)
-        log_debug(logger, "Se elimino el directorio %s correctamente.", file_path->fts_path);
-    else
-        log_error(logger, "Error eliminando el directorio %s %s.", file_path->fts_path, strerror(file_path->fts_errno));
-}
-
-static void resetear_bitmap(FTSENT* file_path){
-    //estoy adentro del archivo
-    t_pokemon_info* pokemon_info = parse_pokemon_info(NULL, file_path->fts_accpath);
-    list_add_all(existing_blocks, pokemon_info->blocks);
-}
-
-static void resetear_punto_montaje(const char* punto_montaje, void(*closure_dir)(FTSENT*), void(*closure_file)(FTSENT*)){
-    log_debug(logger, "Se procede a resetear el punto de montaje: %s...", punto_montaje);
+static void recorrer_arbol_directorio(const char* punto_montaje, void(*closure_dir)(FTSENT*), void(*closure_file)(FTSENT*)){
+    log_debug(logger, "Recorriendo arbol de directorio: %s...", punto_montaje);
     FTS *ftsp = NULL;
     FTSENT *curr;
     char *files[] = { (char *) punto_montaje, NULL }; // Cast needed because fts_open() takes a "char * const *"
@@ -106,11 +84,13 @@ static void resetear_punto_montaje(const char* punto_montaje, void(*closure_dir)
         switch (curr->fts_info) {
            case FTS_DP: // este es el evento que lee el directorio en postorden
                if(strcmp(curr->fts_accpath, punto_montaje) != 0) { // al dir. tall-grass no lo borro
-                   closure_dir(curr);
+                   if(closure_dir)
+                       closure_dir(curr);
                }
                break;
            case FTS_F:
-               closure_file(curr);
+               if(closure_file)
+                   closure_file(curr);
                break;
            case FTS_ERR:
                log_error(logger, "Error leyendo: %s %s.",curr->fts_accpath, strerror(curr->fts_errno));
@@ -127,18 +107,29 @@ static void metadata_init(){
     crear_archivo(metadata_info_path, crear_default_metadata_info);
 
     char* bitmap_file_path = get_path_from_file(metadata_dir_path->path, BITMAP_FILE_NAME, FILE_EXTENSION);
-    bitmap_file = abrir_archivo(bitmap_file_path, crear_default_bitarray_info);
+    bitmap_file = abrir_archivo(bitmap_file_path, crear_default_bitarray_info, true);
 
-//    existing_blocks = list_create();
-//    resetear_punto_montaje(files_dir_path->path, NULL, resetear_bitmap);
-//    list_iterate(existing_blocks, configurar_bitmap);
+
+    existing_blocks = list_create();
+    recorrer_arbol_directorio(files_dir_path->path, NULL, resetear_bitmap);
+    list_iterate(existing_blocks, configurar_bitmap);
 
     free(metadata_info_path);
     free(bitmap_file_path);
 }
 
+static void resetear_bitmap(FTSENT* file_path){
+    if(!string_equals_ignore_case(file_path->fts_accpath, get_path_from_file(files_dir_path->path, METADATA_FILE_NAME, FILE_EXTENSION))){ // ignoro el archivo Files/Metadata.bin
+        log_debug(logger, "Actualizando bitmap con file %s.", file_path->fts_accpath);
+        t_pokemon_info* pokemon_info = parse_pokemon_info(NULL, file_path->fts_accpath);
+        list_add_all(existing_blocks, pokemon_info->blocks);
+    }
+}
+
 static void configurar_bitmap(void* element){
-    bitarray_set_bit(bitarray, atoi(element));
+    int bloque = atoi(element);
+    log_debug(logger, "Seteando bloque de datos %i como ocupado.", bloque);
+    bitarray_set_bit(bitarray, bloque);
 }
 
 static void files_init(){
@@ -275,98 +266,144 @@ static void save_pokemon_info(t_pokemon_info* pokemon_info){
     free(size);
 }
 
-void fs_new_pokemon (t_new_pokemon* new_pokemon){
-   int cantidad_pokemones = 0;
-   int block_number = 0;
-   t_list* blocks;
-   t_config* block_data;
-   char* key = get_block_key(new_pokemon->posicion);
-   bool existe_posicion = false;
-   int new_block_size;
-
-   t_pokemon_info* pokemon_info = crear_pokemon_info(new_pokemon->nombre);
+int fs_new_pokemon (t_new_pokemon* new_pokemon){
    check_pokemon_info(new_pokemon->nombre);
 
-   blocks = pokemon_info->blocks;
-   int cant_blocks = list_size(blocks);
-   for(; block_number < cant_blocks; block_number++){
-       block_data = get_block_data(atoi(list_get(blocks, block_number)));
-       existe_posicion = config_has_property(block_data, key);
-       if(existe_posicion){ // ya existe la posicion
-           cantidad_pokemones = config_get_int_value(block_data, key);
+   char* key = get_block_key(new_pokemon->posicion);
+
+   t_pokemon_info* pokemon_info = crear_pokemon_info(new_pokemon->nombre);
+   t_list* blocks_ptrs = pokemon_info->blocks;
+   t_list* block_info_list = parse_blocks_info(blocks_ptrs, pokemon_info);
+
+   //busco si el pokemon ya existe y actualizo su quantity en la lista
+   bool existe_pokemon = false;
+   for(int i = 0; i < list_size(block_info_list); i++){
+       char* element = list_get(block_info_list, i);
+       char** keyAndValue = string_n_split(element, 2, "=");
+       if(string_equals_ignore_case(keyAndValue[0], key)){
+           existe_pokemon = true;
+           log_info(logger, "El pokemon %s ya existe en la posicion %d,%d se le suma cantidad = %d...", new_pokemon->nombre, new_pokemon->posicion->x, new_pokemon->posicion->y, new_pokemon->cantidad);
+           int nueva_cantidad_pokemones = new_pokemon->cantidad + atoi(keyAndValue[1]);
+           char* newKeyAndValue = string_new();
+           string_append(&newKeyAndValue, keyAndValue[0]);
+           string_append(&newKeyAndValue, "=");
+           char* nueva_cant_str = string_itoa(nueva_cantidad_pokemones);
+           string_append(&newKeyAndValue, nueva_cant_str);
+           list_remove(block_info_list, i);
+           list_add_in_index(block_info_list, i, newKeyAndValue);
            break;
-       }
-       config_destroy(block_data);
+      }
+      free(keyAndValue[0]);
+      free(keyAndValue);
    }
-   new_block_size = get_block_size(cantidad_pokemones, new_pokemon, existe_posicion, key);
-   if(!existe_posicion){
-       // es una nueva posicion tengo que verificar si entra en el ultimo bloque de datos o tengo que usar uno nuevo
-       int espacio_libre_ultimo_bloque = config_game_card->block_size - get_last_block_size(pokemon_info->blocks);         ;
-       if(cant_blocks == 0 || (new_block_size > espacio_libre_ultimo_bloque)){ // si no entra en ultimo bloque o es el primer new del pokemon
-           block_number = get_first_empty_block();
-           block_data = get_block_data(block_number);
-           bitarray_set_bit(bitarray, block_number);
+   if(!existe_pokemon){
+       char* new_pokemon_str = string_new();
+       char* coordenada_x = string_itoa(new_pokemon->posicion->x);
+       char* coordenada_y = string_itoa(new_pokemon->posicion->y);
+       char* cantidad = string_itoa(new_pokemon->cantidad);
+       log_info(logger, "El pokemon %s no existe en la posicion: %s,%s se agrega con cantidad = %d...", new_pokemon->nombre, coordenada_x, coordenada_y, new_pokemon->cantidad);
+       string_append(&new_pokemon_str,coordenada_x );
+       string_append(&new_pokemon_str, KEY_SEPARATOR);
+       string_append(&new_pokemon_str, coordenada_y);
+       string_append(&new_pokemon_str, "=");
+       string_append(&new_pokemon_str, cantidad);
+       list_add(block_info_list, new_pokemon_str);
+   }
+   int block_size = config_game_card->block_size;
+
+   // convierto la lista actualizada con la info del nuevo pokemon a un char*
+   char* block_data = get_block_data_from_list(block_info_list, pokemon_info);
+
+   // calculo la cantidad total de data en bytes
+   int cant_block_bytes = string_length(block_data);
+
+   //calculo la nueva cantidad de bloques a utilizar
+   int cant_blocks_necesarios = cant_block_bytes / block_size;
+   if(cant_block_bytes % block_size != 0){//fragmentacion interna en el ultimo ptro.
+       cant_blocks_necesarios++;
+   }
+   if(cant_blocks_necesarios > list_size(blocks_ptrs)){ // para guardar el new pokemon necesito un nuevo bloque
+       int cant_blocks_faltantes = cant_blocks_necesarios - list_size(blocks_ptrs);
+       pthread_mutex_lock(&lock);
+       for(int i = 0; i < cant_blocks_faltantes; i++){
+           int new_block_number = get_first_empty_block();
+           if(new_block_number == -1){
+            log_error(logger, "No tengo mas bloques libres. No se puede agregar el Pokemon: %s el FS esta lleno.", new_pokemon->nombre);
+            pthread_mutex_unlock(&lock);
+            close_file(pokemon_info);
+            liberar_pokemon_info(pokemon_info);
+            return -1;
+           }
+           bitarray_set_bit(bitarray, new_block_number);
            fputs(bitarray->bitarray, bitmap_file); // guardo en disco el nuevo bitmap con el bloque ocupado
-           list_add(pokemon_info->blocks, string_itoa(block_number)); //actualizo mis ptros a bloques en pokemon_info
-       } else{
-          char* last_block_number = list_get(pokemon_info->blocks, --cant_blocks);
-          block_data = get_block_data(atoi(last_block_number));
+           list_add(pokemon_info->blocks, string_itoa(new_block_number)); //actualizo mis ptros a bloques en pokemon_info
        }
-    }else{
-        //TODO: si existe la posicion tengo que verificar que el nuevo quantity no provoque un mov. de info de bloque por superar el tamano
+       pthread_mutex_unlock(&lock);
+   }
+   //elimino todos los blocks del FS
+   void remove_block_file(void* element){
+       char* block_number = (char*) element;
+       char* path = get_path_from_file(blocks_dir_path->path, block_number,FILE_EXTENSION);
+       remove(path);
+   }
+   list_iterate(blocks_ptrs, remove_block_file);
+
+   int offset = 0;
+   void save_file_info(FILE* file){
+       char* values = string_substring(block_data, offset, block_size);
+       offset += block_size;
+       fprintf(file, "%s", values);
+       fflush(file);
+       free(values);
+   }
+   //recorro los bloques y en cada uno copio los primeros n bytes de buffer
+   for(int i = 0; i < list_size(blocks_ptrs); i++){
+       char* block_number = list_get(blocks_ptrs, i);
+       char* path = get_path_from_file(blocks_dir_path->path, block_number, FILE_EXTENSION);
+       crear_archivo(path, save_file_info);
+       free(path);
+   }
+
+   pokemon_info->size = cant_block_bytes;
+   close_file(pokemon_info);
+   liberar_pokemon_info(pokemon_info);
+   free(key);
+   list_destroy_and_destroy_elements(block_info_list, free);
+
+   return 0;
+}
+
+static char* get_block_data_from_list(t_list* block_info_list, t_pokemon_info* pokemon_info){
+    int size = 0;
+    for(int i = 0; i < list_size(block_info_list); i++) {
+        char* element = list_get(block_info_list, i);
+        size += string_length(element) + 1;
     }
 
-    char* new_cantidad_pokemon = string_itoa(cantidad_pokemones + new_pokemon->cantidad);
-    config_set_value(block_data, key, new_cantidad_pokemon);
-
-    sleep(config_game_card->tiempo_retardo_operacion);
-
-    config_save(block_data);
-    config_destroy(block_data);
-
-    pokemon_info->size += new_block_size;
-    close_file(pokemon_info);
-
-    free(key);
-    free(new_cantidad_pokemon);
-    liberar_pokemon_info(pokemon_info);
+    char* buffer = calloc(1, size);//malloc(size);//calloc(1, pokemon_info->size + 1);
+      int offset = 0;
+      for(int i = 0; i < list_size(block_info_list); i++){
+          char* element = list_get(block_info_list, i);
+          strcpy(buffer + offset, element);
+          offset += string_length(element);
+          if(i != (list_size(block_info_list) - 1)){ // la ultima posicion no lleva \n
+              strcpy(buffer + offset, "\n");
+              offset++;
+          }
+      }
+      return buffer;
 }
 
 static int get_first_empty_block(){
-    int block = 0;
-    while(bitarray_test_bit(bitarray, block)){ // mientras devuelva 1 sigo recorriendo el bitmap.
-        block++;
-   }
-    return block;
-}
-
-static int get_last_block_size(t_list* blocks) {
-    int size = 0;
-    int blocks_size = list_size(blocks);
-    if(blocks_size != 0){
-        t_config* block_data = get_block_data(atoi(list_get(blocks, blocks_size - 1)));
-        void contar(char* key, void* value){
-            size += string_length(key) + string_length(value) + 2;
+    int block = -1;
+    int cant_blocks_total = config_game_card->blocks;
+    for(int i = 0; i < cant_blocks_total; i++){ // me fijo los primeros cant_blocks_total bits del array que siempre es potencia de 2.
+        if(!bitarray_test_bit(bitarray, i)){// si el bit es != 1 salgo del loop
+            block = i;
+            break;
         }
-        dictionary_iterator(block_data->properties, contar);
     }
-    return size;
-}
-
-static int get_block_size(int cantidad_pokemones, t_new_pokemon* new_pokemon, bool existe_posicion, char* key){
-    //TODO: esto es un asco: uso el proxy de que 1 char en disco es = 1 byte pero podria hacerlo mejor usando fseek y obteniendo el tamano del file.
-    int block_size;
-    char* current_cantidad_pokemones_str = string_itoa(cantidad_pokemones);
-    cantidad_pokemones += new_pokemon->cantidad;
-    char* new_cantidad_pokemones_str = string_itoa(cantidad_pokemones);
-    if(!existe_posicion){
-       block_size = string_length(key) + string_length(new_cantidad_pokemones_str) + 2;  //sumo 2 uno por el "=" y otro por el /n
-    } else{ // sumo los bytes del size solo si paso de unidad.
-       block_size = (string_length(new_cantidad_pokemones_str) - string_length(current_cantidad_pokemones_str));
-    }
-    free(current_cantidad_pokemones_str);
-    free(new_cantidad_pokemones_str);
-    return block_size;
+    return block;
 }
 
 static char* get_block_key(t_coord* coord){
@@ -417,11 +454,11 @@ static FILE* abrir_directorio(char* dir_path){
 }
 
 static void crear_archivo(char* file_path, void (*file_handler)(FILE*)){
-    FILE* file = abrir_archivo(file_path, file_handler);
+    FILE* file = abrir_archivo(file_path, file_handler, false);
     fclose(file);
 }
 
-static FILE* abrir_archivo(char* file_path, void (*file_handler)(FILE*)){
+static FILE* abrir_archivo(char* file_path, void (*file_handler)(FILE*), bool force_handler){
     bool exists = true;
     if( access( file_path, F_OK ) != -1 ){
          log_debug(logger, "El archivo %s ya existe.", file_path);
@@ -431,7 +468,7 @@ static FILE* abrir_archivo(char* file_path, void (*file_handler)(FILE*)){
         exists = false;
     }
     FILE* file = fopen(file_path ,"a");
-    if(!exists && file_handler)
+    if((!exists && file_handler) || force_handler)
         file_handler(file);
     return file;
 }
@@ -448,103 +485,150 @@ static char* get_path_from_file(char* path, char* file_name, char* file_extensio
 
 bool fs_catch_pokemon(t_catch_pokemon* catch_pokemon){
     bool is_caught = false;
-    int block = 0;
-    char* cant_pokemones_str;
-    char* nueva_cant_pokemones_str = NULL;
-    t_config* block_data;
     t_pokemon_info* pokemon_info = check_pokemon_info(catch_pokemon->nombre);
     if(pokemon_info){
-        char* key = get_block_key(catch_pokemon->posicion);
-        t_list* blocks = pokemon_info->blocks;
-        for(; block < list_size(blocks); block++){
-            block_data = get_block_data(atoi(list_get(blocks, block)));
-            is_caught = config_has_property(block_data, key);
+        char* coordenada_a_buscar = get_block_key(catch_pokemon->posicion);
+        t_list* blocks_ptrs = pokemon_info->blocks;
+        t_list* block_info_list = parse_blocks_info(blocks_ptrs, pokemon_info);
+        for(int i = 0; i < list_size(block_info_list); i++){
+            char* element = list_get(block_info_list, i);
+            char** keyAndValue = string_split(element, "=");
+            char* coordenada = keyAndValue[0];
+            is_caught = string_equals_ignore_case(coordenada, coordenada_a_buscar);
             if(is_caught){
-                int block_size = 0;
-                // si era el ultimo pokemon elimino la entrada de lo contrario solo resto en 1 la cantidad.
-                int cant_pokemones = config_get_int_value(block_data, key);
-                cant_pokemones_str = string_itoa(cant_pokemones);
-                if(cant_pokemones == 1){ //es el ultimo pokemon elimino la key del bloque
-                    config_remove_key(block_data, key);
-                    // si es la ultima entrada libero el bloque del bitmap y actualizo el ptro del FCB.
-                    if(dictionary_is_empty(block_data->properties)){
-                        bool find_block (void* element){
-                            bool found = false;
-                            if(block == atoi(element))
-                                found = true;
-                            return found;
-                        }
-                        bitarray_clean_bit(bitarray, block);//pongo el bit en cero
-                        fputs(bitarray->bitarray, bitmap_file);
-                        list_remove_by_condition(pokemon_info->blocks, find_block);
-                    }
-                    block_size = string_length(key) + string_length(cant_pokemones_str) + 2; // sumo el "=" y el salto de linea.
-                }else{
-                    //calculo el nuevo size del archivo y actualizo la cantidad de pokemons en el bloque de datos.
-                    nueva_cant_pokemones_str = string_itoa(--cant_pokemones);
-                    if(string_length(cant_pokemones_str) - string_length(nueva_cant_pokemones_str) > 0){ //TODO usando fseek es mas facil saber los bytes del archivo
-                        block_size = 1; // ej: tenia 100 y al restarle 1 queda en 99, le resto un byte
-                    }
-                    config_set_value(block_data, key, nueva_cant_pokemones_str);
+                int cant_pokemones = atoi(keyAndValue[1]);
+                if(cant_pokemones == 1){// si era el ultimo pokemon elimino la entrada de lo contrario solo resto en 1 la cantidad.
+                    list_remove(block_info_list, i);
                 }
-                sleep(config_game_card->tiempo_retardo_operacion); // solo uso el retardo para operar los bloques no con el FCB, decision de diseno.
-                config_save(block_data);
-                free(cant_pokemones_str);
-                pokemon_info->size -= block_size;
-                close_file(pokemon_info);
-                //free(nueva_cant_pokemones_str);
+                else{
+                    list_remove(block_info_list, i);
+                    char* new_keyAndValue = string_new();
+                    string_append(&new_keyAndValue, keyAndValue[0]);
+                    string_append(&new_keyAndValue, "=");
+                    string_append(&new_keyAndValue, string_itoa(cant_pokemones - 1));
+                    list_add_in_index(block_info_list, i, new_keyAndValue);
+                }
+                if(list_is_empty(block_info_list)){ // esto pasa cuando hago catch del ultimo pokemon
+                    //elimino todos los blocks del FS
+                   void remove_block_file(void* element){
+                     char* block_number = (char*) element;
+                     char* path = get_path_from_file(blocks_dir_path->path, block_number,FILE_EXTENSION);
+                     remove(path);
+                     crear_archivo(path, NULL); // creo el bloque vacio
+                     free(path);
+                   }
+                   list_iterate(blocks_ptrs, remove_block_file);
+
+                   pthread_mutex_lock(&lock);
+                       for(int i = 0; i < list_size(blocks_ptrs); i++){
+                           int block_number = atoi(list_get(blocks_ptrs, i));
+                           bitarray_clean_bit(bitarray, block_number);
+                       }
+                       list_clean(pokemon_info->blocks);
+                       pokemon_info->size  = 0;
+                       fputs(bitarray->bitarray, bitmap_file); // guardo en disco el nuevo bitmap con el bloque ocupado
+                   pthread_mutex_unlock(&lock);
+                   break;
+                }
+                int block_size = config_game_card->block_size;
+
+                // convierto la lista actualizada con la info del nuevo pokemon a un char*
+                char* block_data = get_block_data_from_list(block_info_list, pokemon_info);
+
+                // calculo la cantidad total de data en bytes
+                int cant_block_bytes = string_length(block_data);
+
+                //calculo la nueva cantidad de bloques a utilizar
+                int cant_blocks_necesarios = cant_block_bytes / block_size;
+                if(cant_block_bytes % block_size != 0){//fragmentacion interna en el ultimo ptro.
+                  cant_blocks_necesarios++;
+                }
+                //elimino todos los blocks del FS
+                void remove_block_file(void* element){
+                  char* block_number = (char*) element;
+                  char* path = get_path_from_file(blocks_dir_path->path, block_number,FILE_EXTENSION);
+                  remove(path);
+                  free(path);
+                }
+                list_iterate(blocks_ptrs, remove_block_file);
+
+                if(cant_blocks_necesarios < list_size(blocks_ptrs)){ //si tuve que eliminar un bloque, libero el ultimo y lo marco como libre
+                    int cant_blocks_a_eliminar = list_size(blocks_ptrs) - cant_blocks_necesarios;
+                    pthread_mutex_lock(&lock);
+                        for(int i = 0; i < cant_blocks_a_eliminar; i++){
+                            int last_block_number = atoi(list_get(blocks_ptrs, list_size(blocks_ptrs) - 1));
+                            bitarray_clean_bit(bitarray, last_block_number);
+                            fputs(bitarray->bitarray, bitmap_file); // guardo en disco el nuevo bitmap con el bloque ocupado
+                            char* path = get_path_from_file(blocks_dir_path->path, list_get(blocks_ptrs, list_size(blocks_ptrs) - 1), FILE_EXTENSION);
+                            crear_archivo(path, NULL); // creo el bloque vacio
+                            list_remove(pokemon_info->blocks, list_size(blocks_ptrs) - 1); //actualizo mis ptros a bloques en pokemon_info
+                            free(path);
+                        }
+                    pthread_mutex_unlock(&lock);
+                }
+                int offset = 0;
+                void save_file_info(FILE* file){
+                  char* values = string_substring(block_data, offset, block_size);
+                  offset += block_size;
+                  fprintf(file, "%s", values);
+                  fflush(file);
+                  free(values);
+                }
+                //recorro los bloques y en cada uno copio los primeros n bytes de buffer
+                for(int i = 0; i < list_size(blocks_ptrs); i++){
+                  char* block_number = list_get(blocks_ptrs, i);
+                  char* path = get_path_from_file(blocks_dir_path->path, block_number, FILE_EXTENSION);
+                  crear_archivo(path, save_file_info);
+                  free(path);
+                }
+                pokemon_info->size = cant_block_bytes;
+
+                free(keyAndValue[0]);
+                free(keyAndValue);
+                free(block_data);
                 break;
             }
-            config_destroy(block_data);
         }
-        free(key);
-        liberar_pokemon_info(pokemon_info);
+        free(coordenada_a_buscar);
+        list_destroy_and_destroy_elements(block_info_list, free);
     }
-    if(nueva_cant_pokemones_str)
-            free(nueva_cant_pokemones_str);
+    close_file(pokemon_info);
+    liberar_pokemon_info(pokemon_info);
+
     return is_caught;
 }
 
 t_localized_info* fs_get_pokemon(t_get_pokemon* get_pokemon){
     t_localized_info* localized_info = malloc(sizeof(t_localized_info));
-    localized_info->cantidad_coordenadas = 0; //TODO: verificar con Broker como espera esta info cuando no existe el pokemon
+    localized_info->cantidad_coordenadas = 0;
     localized_info->coordenadas = list_create();
-    t_config* block_data;
-    int block = 0;
 
     t_pokemon_info* pokemon_info = check_pokemon_info(get_pokemon->nombre);
     if(pokemon_info){
-        t_list* blocks = pokemon_info->blocks;
-        if(!list_is_empty(blocks)){ // si existe el file del pokemon y su FCB tiene ptros
-            void get_coordenadas(char* key, void* value){
-                char** coordenadas = string_split(key, "-");
-                t_coord* coordenada = malloc(sizeof(t_coord));
-                coordenada->x = atoi(*coordenadas);
-                coordenadas++;
-                coordenada->y = atoi(*coordenadas);
-                list_add(localized_info->coordenadas, coordenada);
-                localized_info->cantidad_coordenadas++;
-            }
-            for(; block < list_size(blocks); block++){
-                block_data = get_block_data(atoi(list_get(blocks, block)));
-                dictionary_iterator(block_data->properties, get_coordenadas);
-                config_destroy(block_data);
+        t_list* blocks_ptrs = pokemon_info->blocks;
+        if(!list_is_empty(blocks_ptrs)){ // si existe el file del pokemon y su FCB tiene ptros
+            t_list* block_info_list = parse_blocks_info(blocks_ptrs, pokemon_info);
+            for(int i = 0; i < list_size(block_info_list); i++){
+                 char* element = list_get(block_info_list, i);
+                 char** keyAndValue = string_split(element, "=");
+                 char* key = keyAndValue[0];
+                 char** coordenadas = string_split(key, "-");
+                 t_coord* coordenada = malloc(sizeof(t_coord));
+                 coordenada->x = atoi(*coordenadas);
+                 coordenadas++;
+                 coordenada->y = atoi(*coordenadas);
+                 list_add(localized_info->coordenadas, coordenada);
+                 localized_info->cantidad_coordenadas++;
             }
         }
         close_file(pokemon_info);
         liberar_pokemon_info(pokemon_info);
     }
 
-    if (localized_info->coordenadas == 0) return NULL;
+    if (localized_info->coordenadas == 0)
+        return NULL;
 
     return localized_info;
-}
-
-static t_config* get_block_data(int block){
-   char* block_str = string_itoa(block);
-   char* block_file_path = get_path_from_file(blocks_dir_path->path, block_str, FILE_EXTENSION);
-   free(block_str);
-   return config_create(block_file_path);
 }
 
 static void liberar_pokemon_info(t_pokemon_info* pokemon_info){
@@ -561,13 +645,41 @@ void liberar_t_path(t_path* t_path){
     free(t_path);
 }
 
+static t_list* parse_blocks_info(t_list* block_ptrs, t_pokemon_info* pokemon_info){
+    t_list* list = list_create();
+    char* buffer = calloc(1, pokemon_info->size + 1);
+    off_t offset = 0;
+    for(int i= 0; i < list_size(block_ptrs); i++){
+        char* block_number = list_get(block_ptrs, i);
+        char* path = get_path_from_file(blocks_dir_path->path, block_number, FILE_EXTENSION);
+        FILE* file = fopen(path, "r");
+        if (file == NULL) {
+            return NULL;
+        }
+        struct stat stat_file;
+        stat(path, &stat_file);
+        off_t size = stat_file.st_size;
+        fread(buffer + offset, size, 1, file);
+        offset += size;
+        fclose(file);
+        free(path);
+    }
+    char** lines = string_split(buffer, "\n");
+    while(*lines != NULL){
+        list_add(list, *lines);
+        lines ++;
+    }
+    free(buffer);
+    return list;
+}
+
 bool check_file_open(t_pokemon_info* pokemon_info){
     bool is_open = pokemon_info->is_open;
     if(is_open){
         sincronizacion_unlock(pokemon_info->name);
         log_warning(logger, "El archivo %s se encuentra abierto", pokemon_info->file_path);
         sleep(config_game_card->tiempo_reintento_operacion);
-}
+    }
     else {
         log_info(logger, "El archivo %s no se encuentra abierto", pokemon_info->file_path);
         pokemon_info->is_open = true;
@@ -580,5 +692,6 @@ static void close_file(t_pokemon_info* pokemon_info) {
     sincronizacion_lock(pokemon_info->name);
     pokemon_info->is_open = false;
     save_pokemon_info(pokemon_info);
+    sleep(config_game_card->tiempo_retardo_operacion);
     sincronizacion_unlock(pokemon_info->name);
 }

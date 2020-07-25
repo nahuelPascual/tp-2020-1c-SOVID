@@ -7,6 +7,9 @@
 
 #include <commons/collections/dictionary.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 pthread_mutex_t mx_semaforos;
 

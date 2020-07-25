@@ -64,8 +64,11 @@ static void enviar_localized_pokemon_response(char* nombre_pokemon, t_localized_
     t_paquete* paquete = paquete_from_localized_pokemon(localized_pokemon);
     paquete->header->correlation_id_mensaje = correlation_id;
 
-    int broker = ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
-    if (broker != -1) esperar_id(broker);
+    int socket = ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
+    if(socket != -1) {
+        esperar_id(socket);
+        ipc_cerrar(socket);
+    }
 
     mensaje_liberar_localized_pokemon(localized_pokemon);
     paquete_liberar(paquete);
@@ -77,12 +80,12 @@ static void procesar_new_pokemon(t_paquete* paquete){
     t_new_pokemon* new_pokemon = paquete_to_new_pokemon(paquete);
     uint32_t correlation_id = paquete->header->id_mensaje;
 
-    fs_new_pokemon(new_pokemon);
-
-    enviar_appeared_pokemon_response(new_pokemon, correlation_id);
-
+    int ret = fs_new_pokemon(new_pokemon);
+    if(ret >=0)
+        enviar_appeared_pokemon_response(new_pokemon, correlation_id);
     mensaje_liberar_new_pokemon(new_pokemon);
     paquete_liberar(paquete);
+
 }
 
 static void enviar_appeared_pokemon_response(t_new_pokemon* new_pokemon, uint32_t correlation_id){
@@ -90,8 +93,11 @@ static void enviar_appeared_pokemon_response(t_new_pokemon* new_pokemon, uint32_
     t_paquete* paquete = paquete_from_appeared_pokemon(appeared_pokemon);
     paquete->header->correlation_id_mensaje = correlation_id;
 
-    int broker = ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
-    if (broker != -1) esperar_id(broker);
+    int socket = ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
+    if(socket != -1) {
+        esperar_id(socket);
+        ipc_cerrar(socket);
+    }
 
     mensaje_liberar_appeared_pokemon(appeared_pokemon);
     paquete_liberar(paquete);
@@ -115,9 +121,11 @@ static void enviar_caught_pokemon_response(bool is_caught, uint32_t correlation_
    t_caught_pokemon* caught_pokemon = mensaje_crear_caught_pokemon(is_caught);
    t_paquete* paquete = paquete_from_caught_pokemon(caught_pokemon);
    paquete->header->correlation_id_mensaje = correlation_id;
-
-   int broker = ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
-   if (broker != -1) esperar_id(broker);
+   int socket = ipc_enviar_broker(paquete, config_game_card->ip_broker, config_game_card->puerto_broker);
+   if(socket != -1) {
+        esperar_id(socket);
+        ipc_cerrar(socket);
+    }
 
    mensaje_liberar_caught_pokemon(caught_pokemon);
    paquete_liberar(paquete);
