@@ -1,0 +1,57 @@
+#!/bin/bash
+
+#PARA DAR PERMISOS AL SCRIPT:
+#chmod 755 ScriptGameBoy en consola
+
+cd  ../game-boy
+
+echo "TESTING GAME-BOY"
+echo "-------------------------"
+
+echo "BROKER"
+
+./build/game-boy BROKER NEW_POKEMON Charmander 4 6 1 123
+echo $?
+
+./build/game-boy BROKER APPEARED_POKEMON Ratata 1 4 9
+echo $?
+
+./build/game-boy BROKER CATCH_POKEMON Nahuelin 4 5 123
+echo $?
+
+./build/game-boy BROKER CAUGHT_POKEMON 9 1 123
+echo $?
+
+./build/game-boy BROKER CAUGHT_POKEMON 8 0 123
+echo $?
+
+./build/game-boy BROKER GET_POKEMON Pikachu 123
+echo $?
+
+echo "TEAM"
+
+./build/game-boy TEAM APPEARED_POKEMON Nahuelin 1 5 9 111
+echo $?
+
+echo "GAMECARD"
+./build/game-boy GAMECARD NEW_POKEMON Snorlax 3 7 1 123
+echo $?
+
+./build/game-boy GAMECARD CATCH_POKEMON Pikachu 4 3 123
+echo $?
+
+./build/game-boy GAMECARD GET_POKEMON Pikachu 123
+echo $?
+
+echo "SUSCRIPTOR"
+
+./build/game-boy SUSCRIPTOR APPEARED_POKEMON 60
+echo $?
+
+#./build/game-boy SUSCRIPTOR CAUGHT_POKEMON 60
+#echo $?
+
+#./build/game-boy SUSCRIPTOR LOCALIZED_POKEMON 60
+#echo $?
+
+echo "FIN DEL SCRIPT"
